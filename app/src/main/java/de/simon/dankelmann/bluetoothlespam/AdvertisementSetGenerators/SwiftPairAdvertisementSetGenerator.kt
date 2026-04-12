@@ -25,16 +25,20 @@ class SwiftPairAdvertisementSetGenerator : IAdvertisementSetGenerator {
     private val _prependedBytes = StringHelpers.decodeHex("030080")
 
     private val _deviceNames = mapOf(
-        "Device 1" to "Not used...",
-        "Device 2" to "Not used...",
-        "Device 3" to "Not used...",
-        "Device 4" to "Not used...",
-        "Device 5" to "Not used...",
-        "Device 6" to "Not used...",
-        "Device 7" to "Not used...",
-        "Device 8" to "Not used...",
-        "Device 9" to "Not used...",
-        "Device 10" to "Not used...",
+        "Surface Headphones" to "Microsoft Surface Headphones",
+        "Surface Headphones 2+" to "Microsoft Surface Headphones 2+",
+        "Surface Earbuds" to "Microsoft Surface Earbuds",
+        "Xbox Wireless Controller" to "Xbox Controller",
+        "Microsoft Bluetooth Keyboard" to "Microsoft Keyboard",
+        "Microsoft Modern Mobile Headset" to "Microsoft Headset",
+        "Surface Precision Mouse" to "Microsoft Mouse",
+        "Microsoft Number Pad" to "Microsoft Number Pad",
+        "Surface Mobile Mouse" to "Surface Mouse",
+        "Designer Compact Keyboard" to "Microsoft Designer Keyboard",
+        "Arc Mouse" to "Microsoft Arc Mouse",
+        "Universal Foldable Keyboard" to "Microsoft Foldable KB",
+        "Bluetooth Mobile Keyboard 5000" to "Microsoft Mobile KB",
+        "Wireless Display Adapter" to "Microsoft Display",
     )
 
     private val _manufacturerId = Constants.MANUFACTURER_ID_MICROSOFT
