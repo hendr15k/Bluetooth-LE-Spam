@@ -505,7 +505,31 @@ class FastPairDevicesAdvertisementSetGenerator:IAdvertisementSetGenerator{
         "9CA277" to "YY2963",
         "CC754F" to "YY2963",
         "8C1706" to "YY7861E",
-        "E5E2E9" to "Zone Wireless 2"
+        "E5E2E9" to "Zone Wireless 2",
+        // NEW DEVICES FROM BLE-DB (2024-2025)
+        "001000" to "LG HBS1110",
+        "02C2CB" to "Redmi Buds 4 Active",
+        "0577B1" to "Galaxy S23 Ultra",
+        "05A9BC" to "Galaxy S20+",
+        "0703CD" to "JBL Flip 6",
+        "1EB5AB" to "OPPO Enco Buds2",
+        "212FF0" to "Pebblebee Tag",
+        "5B8DFC" to "Pebblebee Clip",
+        "6B4B9E" to "OnePlus Nord Buds 2r",
+        "6C521F" to "Redmi Buds 4 Active",
+        "89D26F" to "JBL Go 4",
+        "8E61C1" to "Redmi Buds 4 lite",
+        "92163A" to "OPPO Watch X",
+        "9A09C2" to "JBL Go 4",
+        "A8C1E1" to "Pebblebee Clip",
+        "C9214F" to "JBL Go 4",
+        "CA4DE1" to "OPPO Enco Air3 Pro",
+        "CBCB44" to "Google Pixel Watch 2",
+        "CBF1AF" to "JBL Live Buds 3",
+        "CC4FD6" to "Google Pixel Watch 2",
+        "D5CF84" to "JBL Go 4",
+        "D90361" to "MOTO BUDS 125",
+        "DC3D24" to "Jabra Elit10 Pro"
         )
 
 
