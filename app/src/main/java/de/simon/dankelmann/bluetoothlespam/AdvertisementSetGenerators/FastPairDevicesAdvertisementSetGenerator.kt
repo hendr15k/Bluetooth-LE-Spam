@@ -529,7 +529,25 @@ class FastPairDevicesAdvertisementSetGenerator:IAdvertisementSetGenerator{
         "CC4FD6" to "Google Pixel Watch 2",
         "D5CF84" to "JBL Go 4",
         "D90361" to "MOTO BUDS 125",
-        "DC3D24" to "Jabra Elit10 Pro"
+        "DC3D24" to "Jabra Elit10 Pro",
+        // EXPERIMENT 2: More products from BLE-DB
+        "000047" to "Arduino 101",
+        "000048" to "Fast Pair Headphones",
+        "006E9D" to "HDX-2982",
+        "0200F0" to "Goodyear",
+        "202208" to "Huawei FreeBuds 4",
+        "20ADAB" to "Qualcomm ADK Headset",
+        "6C6BED" to "ROCKSTER GO",
+        "8956BB" to "onn",
+        "89B946" to "EMBERTON III",
+        "922900" to "soundcore Motion B300",
+        "B37A62" to "Tesla",
+        "CAC28A" to "Airoha MC-Sync Earbuds",
+        "D5A6F9" to "Galaxy S25",
+        "D6C43E" to "boAt Alpha",
+        "DCE90F" to "WONDERBOOM 4",
+        "E6032D" to "MAJOR V",
+        "F00400" to "T10"
         )
 
 
