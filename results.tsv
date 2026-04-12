@@ -1,2 +1,3 @@
 commit	device_count	status	description
 52cfa91	778	keep	Baseline (existing device count)
+5f409d1	801	keep	Add 23 new FastPair device IDs (BLE-DB)
