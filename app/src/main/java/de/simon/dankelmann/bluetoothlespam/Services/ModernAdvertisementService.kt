@@ -25,7 +25,7 @@ class ModernAdvertisementService(
     private var _advertiser: BluetoothLeAdvertiser? = null
     private var _advertisementServiceCallbacks:MutableList<IAdvertisementServiceCallback> = mutableListOf()
     private var _currentAdvertisementSet: AdvertisementSet? = null
-    private var _txPowerLevel:TxPowerLevel? = null
+    private var _txPowerLevel:TxPowerLevel = TxPowerLevel.TX_POWER_HIGH
 
     init {
         _bluetoothAdapter = context.bluetoothAdapter()
@@ -35,41 +35,74 @@ class ModernAdvertisementService(
     }
 
     fun prepareAdvertisementSet(advertisementSet: AdvertisementSet):AdvertisementSet{
-        if(_txPowerLevel != null){
-            advertisementSet.advertiseSettings.txPowerLevel = _txPowerLevel!!
-            advertisementSet.advertisingSetParameters.txPowerLevel = _txPowerLevel!!
-        }
+        advertisementSet.advertiseSettings.txPowerLevel = _txPowerLevel
+        advertisementSet.advertisingSetParameters.txPowerLevel = _txPowerLevel
         advertisementSet.advertisingSetCallback = getAdvertisingSetCallback()
         return advertisementSet
     }
 
+    private fun dispatchStart(advertisementSet: AdvertisementSet?) {
+        _advertisementServiceCallbacks.forEach {
+            it.onAdvertisementSetStart(advertisementSet)
+        }
+    }
+
+    private fun dispatchSucceeded(advertisementSet: AdvertisementSet?) {
+        _advertisementServiceCallbacks.forEach {
+            it.onAdvertisementSetSucceeded(advertisementSet)
+        }
+    }
+
+    private fun dispatchFailed(advertisementSet: AdvertisementSet?, error: AdvertisementError) {
+        _advertisementServiceCallbacks.forEach {
+            it.onAdvertisementSetFailed(advertisementSet, error)
+        }
+    }
+
+    private fun dispatchStop(advertisementSet: AdvertisementSet?) {
+        _advertisementServiceCallbacks.forEach {
+            it.onAdvertisementSetStop(advertisementSet)
+        }
+    }
 
 
-    // Callback Implementation
+
     override fun startAdvertisement(advertisementSet: AdvertisementSet) {
         if(_advertiser != null){
             if(advertisementSet.validate()){
                 if(PermissionCheck.checkPermission(Manifest.permission.BLUETOOTH_ADVERTISE, context)){
                     val preparedAdvertisementSet = prepareAdvertisementSet(advertisementSet)
                     if(preparedAdvertisementSet.scanResponse != null){
-                        _advertiser!!.startAdvertisingSet(preparedAdvertisementSet.advertisingSetParameters.build(), preparedAdvertisementSet.advertiseData.build(), preparedAdvertisementSet.scanResponse!!.build(), null, null, preparedAdvertisementSet.advertisingSetCallback)
-
+                        _advertiser!!.startAdvertisingSet(
+                            preparedAdvertisementSet.advertisingSetParameters.build(),
+                            preparedAdvertisementSet.advertiseData.build(),
+                            preparedAdvertisementSet.scanResponse!!.build(),
+                            null, null,
+                            preparedAdvertisementSet.advertisingSetCallback
+                        )
                     } else {
-                        _advertiser!!.startAdvertisingSet(preparedAdvertisementSet.advertisingSetParameters.build(), preparedAdvertisementSet.advertiseData.build(), null, null, null, preparedAdvertisementSet.advertisingSetCallback)
+                        _advertiser!!.startAdvertisingSet(
+                            preparedAdvertisementSet.advertisingSetParameters.build(),
+                            preparedAdvertisementSet.advertiseData.build(),
+                            null, null, null,
+                            preparedAdvertisementSet.advertisingSetCallback
+                        )
                     }
-                    Log.d(_logTag, "Started Modern Advertisement")
                     _currentAdvertisementSet = preparedAdvertisementSet
-                    _advertisementServiceCallbacks.map {
-                        it.onAdvertisementSetStart(advertisementSet)
-                    }
+                    // Do NOT call onAdvertisementSetStart here — the BLE stack has not
+                    // confirmed anything yet. The callback fires from onAdvertisingSetStarted.
+                    Log.d(_logTag, "Started Modern Advertisement")
                 } else {
                     Log.d(_logTag, "Missing permission to execute advertisement")
+                    dispatchFailed(advertisementSet, AdvertisementError.ADVERTISE_FAILED_FEATURE_UNSUPPORTED)
                 }
             } else {
                 Log.d(_logTag, "Advertisement Set could not be validated")
+                dispatchFailed(advertisementSet, AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE)
             }
         } else {
             Log.d(_logTag, "Advertiser is null")
+            dispatchFailed(advertisementSet, AdvertisementError.ADVERTISE_FAILED_FEATURE_UNSUPPORTED)
         }
     }
 
@@ -98,10 +131,7 @@ class ModernAdvertisementService(
     }
 
     override fun getTxPowerLevel(): TxPowerLevel{
-        if(_txPowerLevel != null){
-            return _txPowerLevel!!
-        }
-        return TxPowerLevel.TX_POWER_HIGH
+        return _txPowerLevel
     }
 
     override fun addAdvertisementServiceCallback(callback: IAdvertisementServiceCallback){
@@ -123,39 +153,48 @@ class ModernAdvertisementService(
         return object : AdvertisingSetCallback() {
             override fun onAdvertisingSetStarted(advertisingSet: AdvertisingSet?, txPower: Int, status: Int) {
                 if(status == AdvertisingSetCallback.ADVERTISE_SUCCESS){
-                    // SUCCESS
-                    _advertisementServiceCallbacks.map{
-                        it.onAdvertisementSetSucceeded(_currentAdvertisementSet)
-                    }
-                } else{
-                    // FAIL
+                    // Advertising started successfully — notify that the set has started.
+                    // This is the correct place for onAdvertisementSetStart (not in startAdvertisement()).
+                    Log.d(_logTag, "Advertising set started with txPower=$txPower")
+                    dispatchStart(_currentAdvertisementSet)
+                } else {
+                    // Failed to even start advertising
                     val advertisementError = when (status) {
                         AdvertisingSetCallback.ADVERTISE_FAILED_ALREADY_STARTED -> AdvertisementError.ADVERTISE_FAILED_ALREADY_STARTED
                         AdvertisingSetCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> AdvertisementError.ADVERTISE_FAILED_FEATURE_UNSUPPORTED
                         AdvertisingSetCallback.ADVERTISE_FAILED_INTERNAL_ERROR -> AdvertisementError.ADVERTISE_FAILED_INTERNAL_ERROR
                         AdvertisingSetCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> AdvertisementError.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS
                         AdvertisingSetCallback.ADVERTISE_FAILED_DATA_TOO_LARGE -> AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE
-                        else -> {AdvertisementError.ADVERTISE_FAILED_UNKNOWN}
+                        else -> AdvertisementError.ADVERTISE_FAILED_UNKNOWN
                     }
-
-                    _advertisementServiceCallbacks.map{
-                        it.onAdvertisementSetFailed(_currentAdvertisementSet, advertisementError)
-                    }
+                    Log.e(_logTag, "Failed to start advertising set: $advertisementError")
+                    dispatchFailed(_currentAdvertisementSet, advertisementError)
                 }
             }
 
             override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet, status: Int) {
-
+                if (status == AdvertisingSetCallback.ADVERTISE_SUCCESS) {
+                    // Advertising data confirmed by the controller — the advertisement is truly
+                    // active now. This is the right moment to mark it as succeeded.
+                    Log.d(_logTag, "Advertising data set confirmed")
+                    dispatchSucceeded(_currentAdvertisementSet)
+                } else {
+                    Log.e(_logTag, "Advertising data set failed with status $status")
+                    dispatchFailed(_currentAdvertisementSet, AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE)
+                }
             }
 
             override fun onScanResponseDataSet(advertisingSet: AdvertisingSet, status: Int) {
-
+                if (status == AdvertisingSetCallback.ADVERTISE_SUCCESS) {
+                    Log.d(_logTag, "Scan response data set confirmed")
+                }
+                // No separate callback needed here — this just confirms the scan response
+                // was accepted. The advertisement is already considered active.
             }
 
             override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet) {
-                _advertisementServiceCallbacks.map{
-                    it.onAdvertisementSetStop(_currentAdvertisementSet)
-                }
+                Log.d(_logTag, "Advertising set stopped")
+                dispatchStop(_currentAdvertisementSet)
             }
         }
     }
