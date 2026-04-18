@@ -47,11 +47,8 @@ class LegacyAdvertisementService(
                     } else {
                         _advertiser!!.startAdvertising(preparedAdvertisementSet.advertiseSettings.build(), preparedAdvertisementSet.advertiseData.build(), preparedAdvertisementSet.advertisingCallback)
                     }
-                    Log.d(_logTag, "Started Legacy Advertisement")
                     _currentAdvertisementSet = preparedAdvertisementSet
-                    _advertisementServiceCallbacks.map {
-                        it.onAdvertisementSetStart(advertisementSet)
-                    }
+                    Log.d(_logTag, "Started Legacy Advertisement")
                 } else {
                     Log.d(_logTag, "Missing permission to execute advertisement")
                 }
@@ -135,17 +132,18 @@ class LegacyAdvertisementService(
                     AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR -> AdvertisementError.ADVERTISE_FAILED_INTERNAL_ERROR
                     AdvertiseCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> AdvertisementError.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS
                     AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE -> AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE
-                    else -> {AdvertisementError.ADVERTISE_FAILED_UNKNOWN}
+                    else -> AdvertisementError.ADVERTISE_FAILED_UNKNOWN
                 }
 
-                _advertisementServiceCallbacks.map {
+                _advertisementServiceCallbacks.forEach {
                     it.onAdvertisementSetFailed(_currentAdvertisementSet, advertisementError)
                 }
             }
 
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
                 super.onStartSuccess(settingsInEffect)
-                _advertisementServiceCallbacks.map {
+                _advertisementServiceCallbacks.forEach {
+                    it.onAdvertisementSetStart(_currentAdvertisementSet)
                     it.onAdvertisementSetSucceeded(_currentAdvertisementSet)
                 }
             }
