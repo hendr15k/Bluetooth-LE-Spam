@@ -299,7 +299,9 @@ class AdvertisementSetQueueHandler(
                     }
                 }
 
-                // No checked set found in any list
+                // No checked set found in any list — deactivating will stop the loop safely.
+                _active = false
+                Log.w(_logTag, "No checked advertisement sets found; deactivating queue.")
                 return
             }
 
