@@ -23,6 +23,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
+          accept-android-sdk-licenses: true
           packages: '["platforms;android-36"]'
 
       - name: Setup Gradle
