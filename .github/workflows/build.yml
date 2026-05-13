@@ -2,6 +2,7 @@ name: Build
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -65,8 +66,19 @@ jobs:
           fi
           ./gradlew assemble --no-daemon --stacktrace --warning-mode=all
 
-      - name: Upload
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.repo }}(${{ env.version }}@${{ env.commit }})
           path: app/build/outputs/apk/**/app-*.apk
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.version }}
+          name: ${{ env.version }}
+          files: app/build/outputs/apk/**/app-*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
