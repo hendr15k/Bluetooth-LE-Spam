@@ -20,11 +20,29 @@ jobs:
           distribution: 'temurin'
           java-version: 21
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-          packages: '["platforms;android-36"]'
+      - name: Install Android SDK
+        env:
+          ANDROID_HOME: ${{ github.workspace }}/android-sdk
+        run: |
+          set -e
+          mkdir -p "$ANDROID_HOME"
+          cd "$ANDROID_HOME"
+
+          # Download command-line tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11040533_latest.zip -O cmdline-tools.zip
+          mkdir -p cmdline-tools
+          unzip -o cmdline-tools.zip -d cmdline-tools
+          mv cmdline-tools/cmdline-tools cmdline-tools/latest
+          rm cmdline-tools.zip
+
+          # Export for gradle
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+          # Accept licenses
+          yes | cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1
+
+          # Install SDK platform and build-tools
+          cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -32,6 +50,7 @@ jobs:
       - name: Set environments
         run: |
           {
+            echo "ANDROID_HOME=${{ github.workspace }}/android-sdk"
             echo "version=v$(grep -oP 'versionName\s*=\s*\"\K[^\"]+' app/build.gradle.kts)"
             echo "commit=$(echo ${{ github.sha }} | cut -c-7)"
             echo "repo=$(echo ${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/})"
