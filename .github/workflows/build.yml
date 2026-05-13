@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
     steps:
 
       - name: Checkout
@@ -21,8 +23,6 @@ jobs:
           java-version: 21
 
       - name: Install Android SDK
-        env:
-          ANDROID_HOME: ${{ github.workspace }}/android-sdk
         run: |
           mkdir -p "$ANDROID_HOME"
           cd "$ANDROID_HOME"
@@ -34,15 +34,15 @@ jobs:
           rm cmdline-tools.zip
 
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
-          export ANDROID_HOME
-          export JAVA_HOME="$JAVA_HOME"
 
           yes 2>/dev/null | sdkmanager --licenses > /dev/null 2>&1 || true
 
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" || true
           sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
 
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -50,7 +50,6 @@ jobs:
       - name: Set environments
         run: |
           {
-            echo "ANDROID_HOME=${{ github.workspace }}/android-sdk"
             echo "version=v$(grep -oP 'versionName\s*=\s*\"\K[^\"]+' app/build.gradle.kts)"
             echo "commit=$(echo ${{ github.sha }} | cut -c-7)"
             echo "repo=$(echo ${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/})"
