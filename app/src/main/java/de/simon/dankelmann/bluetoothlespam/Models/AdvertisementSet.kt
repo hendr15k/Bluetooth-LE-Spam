@@ -38,16 +38,21 @@ class AdvertisementSet : Serializable {
     var advertisementState = AdvertisementState.ADVERTISEMENT_STATE_UNDEFINED
     var isChecked = true // Default to true to maintain backward compatibility
 
-    fun validate():Boolean{
-        //@todo: implement checks here
+    fun validate(): Boolean {
+        if (!advertiseData.validate()) {
+            return false
+        }
+        if (scanResponse != null && !scanResponse!!.validate()) {
+            return false
+        }
         return true
     }
 
-    fun build(){
-        if(validate()){
+    fun build() {
+        if (validate()) {
 
         } else {
-            Log.d(_logTag, "Advertisement set could ne be built because it is invalid")
+            Log.d(_logTag, "Advertisement set could not be built because it is invalid")
         }
     }
 }

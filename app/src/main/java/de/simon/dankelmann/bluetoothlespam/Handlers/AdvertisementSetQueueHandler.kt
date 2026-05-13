@@ -211,27 +211,33 @@ class AdvertisementSetQueueHandler(
         }
     }
 
-    private fun advertiseNextAdvertisementSet() {
-        selectNextAdvertisementSet()
+private fun advertiseNextAdvertisementSet() {
+         selectNextAdvertisementSet()
 
-        val nextSet = _currentAdvertisementSet
-        if (nextSet == null) {
-            Log.e(_logTag, "Current Advertisement Set is null.")
-            return
-        }
+         val nextSet = _currentAdvertisementSet
+         if (nextSet == null) {
+             Log.e(_logTag, "Current Advertisement Set is null.")
+             return
+         }
 
-        if (_active) {
-            // Only advertise if the set is checked
-            if (nextSet.isChecked) {
-                val preparedSet = prepareAdvertisementSet(nextSet)
-                _advertisementService.startAdvertisement(preparedSet)
-            } else {
-                // If the set is not checked, immediately move to the next one
-                Log.d(_logTag, "Skipping unchecked advertisement set: ${nextSet.title}")
-                onAdvertisementSucceeded()
-            }
-        }
-    }
+         if (_active) {
+             // Only advertise if the set is checked
+             if (nextSet.isChecked) {
+                 val preparedSet = prepareAdvertisementSet(nextSet)
+                 // Validate data size before attempting to advertise
+                 if (preparedSet.validate()) {
+                     _advertisementService.startAdvertisement(preparedSet)
+                 } else {
+                     Log.w(_logTag, "Skipping advertisement set '${preparedSet.title}' — data exceeds ${AdvertiseData.MAX_LEGACY_ADVERTISING_DATA_SIZE} byte limit")
+                     onAdvertisementSucceeded()
+                 }
+             } else {
+                 // If the set is not checked, immediately move to the next one
+                 Log.d(_logTag, "Skipping unchecked advertisement set: ${nextSet.title}")
+                 onAdvertisementSucceeded()
+             }
+         }
+     }
 
     private fun prepareAdvertisementSet(advertisementSet: AdvertisementSet): AdvertisementSet {
         return when (advertisementSet.type) {

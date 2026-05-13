@@ -14,9 +14,36 @@ class AdvertiseData : Serializable {
     var manufacturerData = mutableListOf<ManufacturerSpecificData>()
     var services = mutableListOf<ServiceData>()
 
+    companion object {
+        const val MAX_LEGACY_ADVERTISING_DATA_SIZE = 31
+    }
 
-    fun validate():Boolean{
-        //@Todo: implement validation here
+    fun getRawDataSize(): Int {
+        var size = 0
+
+        services.forEach { service ->
+            if (service.serviceUuid != null) {
+                val uuidBytes = 16
+                size += 1 + uuidBytes
+                if (service.serviceData != null) {
+                    size += service.serviceData!!.size
+                }
+            }
+        }
+
+        manufacturerData.forEach { mfgData ->
+            size += 3 + mfgData.manufacturerSpecificData.size
+        }
+
+        return size
+    }
+
+    fun validate(): Boolean {
+        val size = getRawDataSize()
+        if (size > MAX_LEGACY_ADVERTISING_DATA_SIZE) {
+            Log.w(_logTag, "AdvertiseData exceeds ${MAX_LEGACY_ADVERTISING_DATA_SIZE} bytes (raw: $size bytes)")
+            return false
+        }
         return true
     }
     fun build() : AdvertiseData?{

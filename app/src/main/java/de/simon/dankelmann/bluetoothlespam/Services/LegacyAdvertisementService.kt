@@ -52,9 +52,12 @@ class LegacyAdvertisementService(
                 } else {
                     Log.d(_logTag, "Missing permission to execute advertisement")
                 }
-            } else {
-                Log.d(_logTag, "Advertisement Set could not be validated")
-            }
+} else {
+                 Log.w(_logTag, "Advertisement Set could not be validated — data too large")
+                 _advertisementServiceCallbacks.forEach {
+                     it.onAdvertisementSetFailed(_currentAdvertisementSet, AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE)
+                 }
+             }
         } else {
             Log.d(_logTag, "Advertiser is null")
         }

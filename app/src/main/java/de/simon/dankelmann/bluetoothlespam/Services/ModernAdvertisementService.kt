@@ -97,7 +97,7 @@ class ModernAdvertisementService(
                     dispatchFailed(advertisementSet, AdvertisementError.ADVERTISE_FAILED_FEATURE_UNSUPPORTED)
                 }
             } else {
-                Log.d(_logTag, "Advertisement Set could not be validated")
+                Log.w(_logTag, "Advertisement Set could not be validated — data too large")
                 dispatchFailed(advertisementSet, AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE)
             }
         } else {
