@@ -24,25 +24,25 @@ jobs:
         env:
           ANDROID_HOME: ${{ github.workspace }}/android-sdk
         run: |
-          set -e
           mkdir -p "$ANDROID_HOME"
           cd "$ANDROID_HOME"
 
-          # Download command-line tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11040533_latest.zip -O cmdline-tools.zip
+          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
           mkdir -p cmdline-tools
-          unzip -o cmdline-tools.zip -d cmdline-tools
-          mv cmdline-tools/cmdline-tools cmdline-tools/latest
+          unzip -q -o cmdline-tools.zip -d cmdline-tools
+          mv cmdline-tools/cmdline-tools cmdline-tools/latest 2>/dev/null || true
           rm cmdline-tools.zip
 
-          # Export for gradle
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          export ANDROID_HOME
+          export JAVA_HOME="$JAVA_HOME"
+
+          yes 2>/dev/null | sdkmanager --licenses > /dev/null 2>&1 || true
+
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-
-          # Accept licenses
-          yes | cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1
-
-          # Install SDK platform and build-tools
-          cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
