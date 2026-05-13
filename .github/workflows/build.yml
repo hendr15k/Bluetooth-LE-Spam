@@ -23,7 +23,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          sdk-compact: '36'
+          packages: '["platforms;android-36"]'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
