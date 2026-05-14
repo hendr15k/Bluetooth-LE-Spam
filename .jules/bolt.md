@@ -1,0 +1,3 @@
+## 2024-05-15 - [Optimize Hex string operations]
+**Learning:** The application heavily uses `decodeHex` and `toHexString` to parse and build advertisement payloads inside generator loops. The existing implementations in `StringHelpers` use Kotlin's standard library functions like `.chunked(2).map{...}` and `.joinToString("") { "%02x".format(it) }` which are very expressive but create significant memory allocations and overhead for hot paths.
+**Action:** Replaced these implementations with manual array iterations and bitwise operations to avoid intermediate object allocations and string formatting overhead, drastically reducing memory usage and CPU time during advertisement payload generation.
