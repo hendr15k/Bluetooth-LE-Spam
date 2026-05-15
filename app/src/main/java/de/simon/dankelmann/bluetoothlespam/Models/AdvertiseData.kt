@@ -24,15 +24,15 @@ class AdvertiseData : Serializable {
         services.forEach { service ->
             if (service.serviceUuid != null) {
                 val uuidBytes = 16
-                size += 1 + uuidBytes
+                size += 1 + 1 + uuidBytes
                 if (service.serviceData != null) {
-                    size += service.serviceData!!.size
+                    size += 1 + 1 + uuidBytes + service.serviceData!!.size
                 }
             }
         }
 
         manufacturerData.forEach { mfgData ->
-            size += 3 + mfgData.manufacturerSpecificData.size
+            size += 1 + 1 + 2 + mfgData.manufacturerSpecificData.size
         }
 
         return size
