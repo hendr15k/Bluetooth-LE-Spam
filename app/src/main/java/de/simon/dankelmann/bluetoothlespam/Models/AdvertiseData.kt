@@ -1,6 +1,7 @@
 package de.simon.dankelmann.bluetoothlespam.Models
 
 import android.bluetooth.le.AdvertiseData
+import android.os.ParcelUuid
 import android.util.Log
 import java.io.Serializable
 
@@ -16,6 +17,9 @@ class AdvertiseData : Serializable {
 
     companion object {
         const val MAX_LEGACY_ADVERTISING_DATA_SIZE = 31
+        // Least-significant 64 bits of the Bluetooth Base UUID 00000000-0000-1000-8000-00805F9B34FB.
+        // Used to detect 16-bit / 32-bit short UUIDs, which are encoded in fewer bytes on the wire.
+        private const val BLUETOOTH_BASE_UUID_LEAST_SIGNIFICANT_BITS = 0x800000805F9B34FBL
     }
 
     fun getRawDataSize(): Int {
@@ -23,7 +27,7 @@ class AdvertiseData : Serializable {
 
         services.forEach { service ->
             if (service.serviceUuid != null) {
-                val uuidBytes = 16
+                val uuidBytes = getUuidSizeBytes(service.serviceUuid!!)
                 size += 1 + 1 + uuidBytes
                 if (service.serviceData != null) {
                     size += 1 + 1 + uuidBytes + service.serviceData!!.size
@@ -35,7 +39,25 @@ class AdvertiseData : Serializable {
             size += 1 + 1 + 2 + mfgData.manufacturerSpecificData.size
         }
 
+        if (includeTxPower) {
+            size += 1 + 1 + 1
+        }
+
         return size
+    }
+
+    /**
+     * Returns the number of bytes a ParcelUuid occupies in a legacy BLE AD structure.
+     * 16-bit UUIDs (e.g. Fast Pair 0xFE2C) take 2 bytes, 32-bit take 4, full 128-bit take 16.
+     */
+    private fun getUuidSizeBytes(parcelUuid: ParcelUuid): Int {
+        val uuid = parcelUuid.uuid
+        // Short Bluetooth UUIDs share the Base UUID's lower 96 bits.
+        if (uuid.leastSignificantBits != BLUETOOTH_BASE_UUID_LEAST_SIGNIFICANT_BITS) return 16
+        val mostSignificantBits = uuid.mostSignificantBits
+        if ((mostSignificantBits and 0xFFFFFFFFL) != 0x00001000L) return 16
+        val shortUuid = mostSignificantBits ushr 32
+        return if ((shortUuid and 0xFFFF0000L) == 0L) 2 else 4
     }
 
     fun validate(): Boolean {
