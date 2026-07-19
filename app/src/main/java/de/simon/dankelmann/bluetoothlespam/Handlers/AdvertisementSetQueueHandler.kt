@@ -53,6 +53,11 @@ class AdvertisementSetQueueHandler(
     private var _advertisementQueueHandlerCallbacks:MutableList<IAdvertisementSetQueueHandlerCallback> = mutableListOf()
 
     private var _active = false
+    // Tracks how many consecutive advertisement sets have been skipped because
+    // their payload exceeded the 31-byte legacy limit. When this reaches the
+    // number of checked sets, every checked set is unadvertisable and we must
+    // stop instead of looping (and overflowing the stack).
+    private var _consecutiveValidationSkips = 0
     private var _currentAdvertisementSet: AdvertisementSet? = null
     private var _currentAdvertisementSetListIndex = 0
     private var _currentAdvertisementSetIndex = 0
@@ -182,6 +187,7 @@ class AdvertisementSetQueueHandler(
         }
 
         _active = true
+        _consecutiveValidationSkips = 0
         AdvertisementForegroundService.startService(context)
         _advertisementQueueHandlerCallbacks.forEach { it ->
             try {
@@ -227,8 +233,18 @@ private fun advertiseNextAdvertisementSet() {
                  val preparedSet = prepareAdvertisementSet(nextSet)
                  // Validate data size before attempting to advertise
                  if (preparedSet.validate()) {
+                     _consecutiveValidationSkips = 0
                      _advertisementService.startAdvertisement(preparedSet)
                  } else {
+                     _consecutiveValidationSkips += 1
+                     val checkedSetCount = _advertisementSetCollection.advertisementSetLists
+                         .sumOf { list -> list.advertisementSets.count { it.isChecked } }
+                     if (checkedSetCount == 0 || _consecutiveValidationSkips >= checkedSetCount) {
+                         Log.w(_logTag, "All checked advertisement sets failed validation; deactivating queue.")
+                         _consecutiveValidationSkips = 0
+                         _active = false
+                         return
+                     }
                      Log.w(_logTag, "Skipping advertisement set '${preparedSet.title}' — data exceeds ${AdvertiseData.MAX_LEGACY_ADVERTISING_DATA_SIZE} byte limit")
                      onAdvertisementSucceeded()
                  }
