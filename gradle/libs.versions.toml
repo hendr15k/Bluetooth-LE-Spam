@@ -1,6 +1,7 @@
 [versions]
 agp = "9.3.0"
-kotlin = "2.4.10"
+kotlin = "2.3.10"
+ksp = "2.3.10"
 core = "1.19.0"
 preference = "1.2.1"
 coroutines = "1.11.0"
@@ -15,6 +16,7 @@ lottie = "6.7.1"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" }
 
 [libraries]

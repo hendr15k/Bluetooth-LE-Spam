@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.agp.app)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.safeargs)
-    id("kotlin-kapt")
 }
 
 val app_name = "Bluetooth LE Spam"
@@ -81,13 +81,9 @@ dependencies {
     implementation(libs.google.material)
 
     implementation(libs.room.runtime)
-    annotationProcessor(libs.room.compiler)
-
-    // To use Kotlin annotation processing tool (kapt)
-    kapt(libs.room.compiler)
 
     // To use Kotlin Symbol Processing (KSP)
-    //ksp(libs.room.compiler)
+    ksp(libs.room.compiler)
 
     // optional - Kotlin Extensions and Coroutines support for Room
     //implementation(libs.room.ktx)
