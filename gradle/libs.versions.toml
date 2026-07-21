@@ -15,7 +15,6 @@ lottie = "6.7.1"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
-kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" }
 
 [libraries]
