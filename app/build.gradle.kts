@@ -16,8 +16,8 @@ android {
         applicationId = "de.simon.dankelmann.bluetoothlespam"
         minSdk = 26
         targetSdk = compileSdk
-        versionCode = 3
-        versionName = "1.0.9"
+        versionCode = 4
+        versionName = "1.1.0"
     }
 
     signingConfigs {
