@@ -76,13 +76,13 @@ class DatabaseHelpers {
             var advertiseDataEntityId = saveAdvertiseData(advertisementSet.advertiseData, database)
             advertisementSetEntity.advertiseDataId = advertiseDataEntityId
 
-            var scanResponseId = 0
+            var scanResponseId: Int? = null
             if(advertisementSet.scanResponse != null){
                 scanResponseId = saveAdvertiseData(advertisementSet.scanResponse!!, database)
             }
             advertisementSetEntity.scanResponseId = scanResponseId
 
-            var periodicAdvertiseDataId = 0
+            var periodicAdvertiseDataId: Int? = null
             if(advertisementSet.periodicAdvertiseData != null){
                 periodicAdvertiseDataId = saveAdvertiseData(advertisementSet.periodicAdvertiseData!!, database)
             }
@@ -157,30 +157,38 @@ class DatabaseHelpers {
             var database = AppDatabase.getInstance()
 
             // Advertise Settings
-            database.advertiseSettingsDao().findById(advertisementSetEntity.advertiseSettingsId)?.let { entity ->
-                advertisementSet.advertiseSettings = AdvertiseSettings().apply {
-                    id = advertisementSetEntity.id
-                    advertiseMode = entity.advertiseMode
-                    txPowerLevel = entity.txPowerLevel
-                    connectable = entity.connectable
-                    timeout = entity.timeout
+            try {
+                database.advertiseSettingsDao().findById(advertisementSetEntity.advertiseSettingsId)?.let { entity ->
+                    advertisementSet.advertiseSettings = AdvertiseSettings().apply {
+                        id = advertisementSetEntity.id
+                        advertiseMode = entity.advertiseMode
+                        txPowerLevel = entity.txPowerLevel
+                        connectable = entity.connectable
+                        timeout = entity.timeout
+                    }
                 }
+            } catch (e: Exception) {
+                // Linked row missing — ignore and leave default AdvertiseSettings in place.
             }
 
             // AdvertisingSetParameters
-            database.advertisingSetParametersDao().findById(advertisementSetEntity.advertisingSetParametersId)?.let { entity ->
-                advertisementSet.advertisingSetParameters = AdvertisingSetParameters().apply {
-                    id = entity.id
-                    legacyMode = entity.legacyMode
-                    interval = entity.interval
-                    txPowerLevel = entity.txPowerLevel
-                    includeTxPowerLevel = entity.includeTxPowerLevel
-                    primaryPhy = entity.primaryPhy
-                    secondaryPhy = entity.secondaryPhy
-                    scanable = entity.scanable
-                    connectable = entity.connectable
-                    anonymous = entity.anonymous
+            try {
+                database.advertisingSetParametersDao().findById(advertisementSetEntity.advertisingSetParametersId)?.let { entity ->
+                    advertisementSet.advertisingSetParameters = AdvertisingSetParameters().apply {
+                        id = entity.id
+                        legacyMode = entity.legacyMode
+                        interval = entity.interval
+                        txPowerLevel = entity.txPowerLevel
+                        includeTxPowerLevel = entity.includeTxPowerLevel
+                        primaryPhy = entity.primaryPhy
+                        secondaryPhy = entity.secondaryPhy
+                        scanable = entity.scanable
+                        connectable = entity.connectable
+                        anonymous = entity.anonymous
+                    }
                 }
+            } catch (e: Exception) {
+                // Linked row missing — ignore and leave default AdvertisingSetParameters in place.
             }
 
             advertisementSetEntity.advertiseDataId?.let { id ->
@@ -201,10 +209,10 @@ class DatabaseHelpers {
                 }
             }
 
-            advertisementSetEntity.periodicAdvertisingParametersId?.let { _ ->
-                database.advertisingSetParametersDao().findById(advertisementSetEntity.advertisingSetParametersId)?.let { entity ->
+            advertisementSetEntity.periodicAdvertisingParametersId?.let { paramId ->
+                database.periodicAdvertisingParametersDao().findById(paramId)?.let { entity ->
                     advertisementSet.periodicAdvertisingParameters = PeriodicAdvertisingParameters().apply {
-                        id = entity.id
+                        this.id = entity.id
                         includeTxPowerLevel = entity.includeTxPowerLevel
                         interval = entity.interval
                     }

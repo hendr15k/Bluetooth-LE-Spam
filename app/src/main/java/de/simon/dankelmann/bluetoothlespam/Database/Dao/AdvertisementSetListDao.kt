@@ -10,7 +10,7 @@ import de.simon.dankelmann.bluetoothlespam.Database.Entities.AdvertisementSetLis
 @Dao
 interface AdvertisementSetListDao {
     @Query("SELECT * FROM advertisementsetlistentity WHERE id = :id")
-    fun findById(id: Int): AdvertisementSetListEntity
+    fun findById(id: Int): AdvertisementSetListEntity?
 
     @Query("SELECT * FROM advertisementsetlistentity")
     fun getAll(): List<AdvertisementSetListEntity>

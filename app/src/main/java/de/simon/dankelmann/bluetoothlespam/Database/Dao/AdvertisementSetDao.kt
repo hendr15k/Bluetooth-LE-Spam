@@ -13,7 +13,7 @@ import de.simon.dankelmann.bluetoothlespam.Enums.AdvertisementTarget
 interface AdvertisementSetDao {
 
     @Query("SELECT * FROM advertisementsetentity WHERE id = :id")
-    fun findById(id: Int): AdvertisementSetEntity
+    fun findById(id: Int): AdvertisementSetEntity?
 
     @Query("SELECT * FROM advertisementsetentity")
     fun getAll(): List<AdvertisementSetEntity>

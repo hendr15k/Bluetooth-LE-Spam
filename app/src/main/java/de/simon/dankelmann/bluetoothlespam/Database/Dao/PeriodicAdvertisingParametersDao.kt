@@ -9,7 +9,7 @@ import de.simon.dankelmann.bluetoothlespam.Database.Entities.PeriodicAdvertising
 @Dao
 interface PeriodicAdvertisingParametersDao {
     @Query("SELECT * FROM periodicadvertisingparametersentity WHERE id = :id")
-    fun findById(id: Int): PeriodicAdvertisingParametersEntity
+    fun findById(id: Int): PeriodicAdvertisingParametersEntity?
 
     @Query("SELECT * FROM periodicadvertisingparametersentity")
     fun getAll(): List<PeriodicAdvertisingParametersEntity>

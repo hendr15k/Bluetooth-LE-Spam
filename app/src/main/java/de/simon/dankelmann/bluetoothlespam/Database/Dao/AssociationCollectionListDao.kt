@@ -10,7 +10,7 @@ import de.simon.dankelmann.bluetoothlespam.Database.Entities.AssociatonCollectio
 @Dao
 interface AssociationCollectionListDao {
     @Query("SELECT * FROM associatoncollectionlistentity WHERE id = :id")
-    fun findById(id: Int): AssociatonCollectionListEntity
+    fun findById(id: Int): AssociatonCollectionListEntity?
 
     @Query("SELECT * FROM associatoncollectionlistentity")
     fun getAll(): List<AssociatonCollectionListEntity>
