@@ -19,7 +19,7 @@ class AdvertiseData : Serializable {
         const val MAX_LEGACY_ADVERTISING_DATA_SIZE = 31
         // Least-significant 64 bits of the Bluetooth Base UUID 00000000-0000-1000-8000-00805F9B34FB.
         // Used to detect 16-bit / 32-bit short UUIDs, which are encoded in fewer bytes on the wire.
-        private const val BLUETOOTH_BASE_UUID_LEAST_SIGNIFICANT_BITS = 0x800000805F9B34FBL
+        private const val BLUETOOTH_BASE_UUID_LEAST_SIGNIFICANT_BITS = -9223371485494954757L
     }
 
     fun getRawDataSize(): Int {
