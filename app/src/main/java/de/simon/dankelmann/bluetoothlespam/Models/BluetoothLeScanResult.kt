@@ -1,6 +1,5 @@
 package de.simon.dankelmann.bluetoothlespam.Models
 
-import android.Manifest
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.ParcelUuid
@@ -58,11 +57,14 @@ open class BluetoothLeScanResult {
                 }
             }
 
-            model.address = scanResult.device.address
-
-            if (PermissionCheck.checkPermission(Manifest.permission.BLUETOOTH_CONNECT, context)) {
-                scanResult.device?.name?.let { name ->
-                    model.deviceName = name
+            if (PermissionCheck.hasConnectPermission(context)) {
+                try {
+                    model.address = scanResult.device.address
+                    scanResult.device?.name?.let { name ->
+                        model.deviceName = name
+                    }
+                } catch (_: SecurityException) {
+                    // The permission may have been revoked between the check and access.
                 }
             }
 

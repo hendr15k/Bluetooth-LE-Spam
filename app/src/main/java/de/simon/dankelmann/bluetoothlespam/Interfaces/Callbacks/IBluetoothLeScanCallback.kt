@@ -5,6 +5,7 @@ import de.simon.dankelmann.bluetoothlespam.Models.FlipperDeviceScanResult
 import de.simon.dankelmann.bluetoothlespam.Models.SpamPackageScanResult
 
 interface IBluetoothLeScanCallback {
+    fun onScanStateChanged(isScanning: Boolean) {}
     fun onScanResult(scanResult:ScanResult)
     fun onFlipperDeviceDetected(flipperDeviceScanResult: FlipperDeviceScanResult, alreadyKnown:Boolean)
     fun onFlipperListUpdated()

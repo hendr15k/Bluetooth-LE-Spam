@@ -39,8 +39,12 @@ class AdvertisementSetQueueHandler(
 ) : IAdvertisementServiceCallback {
 
     private var _logTag = "AdvertisementSetQueueHandler"
+    private val _context = context.applicationContext
+    private val _handler = Handler(Looper.getMainLooper())
+    private var _pendingAdvance: Runnable? = null
 
     private var _advertisementService: IAdvertisementService = adService
+    private var _pendingAdvertisementService: IAdvertisementService? = null
 
     private var _advertisementQueueMode: AdvertisementQueueMode = AdvertisementQueueMode.ADVERTISEMENT_QUEUE_MODE_LINEAR
     private var _advertisementSetCollection: AdvertisementSetCollection =
@@ -61,6 +65,13 @@ class AdvertisementSetQueueHandler(
     private var _currentAdvertisementSet: AdvertisementSet? = null
     private var _currentAdvertisementSetListIndex = 0
     private var _currentAdvertisementSetIndex = 0
+    private var _selectedAdvertisementPending = false
+    private var _pendingAdvertisementSetListIndex = 0
+    private var _pendingAdvertisementSetIndex = 0
+    private var _awaitingModernStop = false
+    private var _stoppingAdvertisementSet: AdvertisementSet? = null
+    private var _activationPending = false
+    private var _advertisementInFlight = false
 
     init {
         _advertisementService.addAdvertisementServiceCallback(this)
@@ -85,23 +96,41 @@ class AdvertisementSetQueueHandler(
     }
 
     fun setAdvertisementService(advertisementService: IAdvertisementService) {
-        _advertisementService.removeAdvertisementServiceCallback(this)
+        if (
+            _advertisementService === advertisementService &&
+            _pendingAdvertisementService == null
+        ) {
+            return
+        }
 
-        _advertisementService = advertisementService
-        _advertisementService.addAdvertisementServiceCallback(this)
+        cancelPendingAdvance()
+        _pendingAdvertisementService = advertisementService
+
+        if (_active || _advertisementInFlight) {
+            deactivate(_context)
+        }
+        if (!_advertisementInFlight && !_awaitingModernStop) {
+            applyPendingAdvertisementService()
+        }
     }
 
 
     fun setSelectedAdvertisementSet(advertisementSetListIndex: Int, advertisementSetIndex: Int){
-        val advertisementSet = _advertisementSetCollection.advertisementSetLists[advertisementSetListIndex]?.advertisementSets?.get(advertisementSetIndex)
+        val advertisementSet = _advertisementSetCollection.advertisementSetLists
+            .getOrNull(advertisementSetListIndex)
+            ?.advertisementSets
+            ?.getOrNull(advertisementSetIndex)
         if (advertisementSet != null) {
-            _currentAdvertisementSetListIndex = advertisementSetListIndex
-            _currentAdvertisementSetIndex = advertisementSetIndex
-            _currentAdvertisementSet = advertisementSet
+            _pendingAdvertisementSetListIndex = advertisementSetListIndex
+            _pendingAdvertisementSetIndex = advertisementSetIndex
+            _selectedAdvertisementPending = true
         }
     }
 
     fun setAdvertisementSetCollection(advertisementSetCollection: AdvertisementSetCollection){
+        if (_active) {
+            deactivate(_context)
+        }
         if(_advertisementSetCollection != advertisementSetCollection){
             _advertisementSetCollection = advertisementSetCollection
         }
@@ -110,6 +139,9 @@ class AdvertisementSetQueueHandler(
         _currentAdvertisementSet= null
         _currentAdvertisementSetListIndex = 0
         _currentAdvertisementSetIndex = 0
+        _selectedAdvertisementPending = false
+        _pendingAdvertisementSetListIndex = 0
+        _pendingAdvertisementSetIndex = 0
     }
 
     fun getAdvertisementSetCollection(): AdvertisementSetCollection{
@@ -179,6 +211,10 @@ class AdvertisementSetQueueHandler(
         if (_active) {
             return
         }
+        if (_awaitingModernStop || _pendingAdvertisementService != null) {
+            _activationPending = true
+            return
+        }
 
         // Cannot activate anything if nothing is selected
         if (!hasCheckedItems()) {
@@ -187,7 +223,9 @@ class AdvertisementSetQueueHandler(
         }
 
         _active = true
+        _activationPending = false
         _consecutiveValidationSkips = 0
+        cancelPendingAdvance()
         AdvertisementForegroundService.startService(context)
         _advertisementQueueHandlerCallbacks.forEach { it ->
             try {
@@ -200,8 +238,12 @@ class AdvertisementSetQueueHandler(
     }
 
     fun deactivate(context: Context, stopService: Boolean = false) {
+        val wasActive = _active
         _active = false
+        _activationPending = false
+        cancelPendingAdvance()
 
+        markModernAdvertisementAsStopping()
         _advertisementService.stopAdvertisement()
 
         if (stopService) {
@@ -209,52 +251,58 @@ class AdvertisementSetQueueHandler(
             AdvertisementForegroundService.stopService(context)
         }
 
-        _advertisementQueueHandlerCallbacks.forEach { it ->
-            try {
-                it.onQueueHandlerDeactivated()
-            } catch (e: Exception) {
-                Log.e(_logTag, "Failed to call onQueueHandlerDeactivated: ${e.message}")
+        if (wasActive) {
+            _advertisementQueueHandlerCallbacks.forEach { it ->
+                try {
+                    it.onQueueHandlerDeactivated()
+                } catch (e: Exception) {
+                    Log.e(_logTag, "Failed to call onQueueHandlerDeactivated: ${e.message}")
+                }
             }
         }
     }
 
-private fun advertiseNextAdvertisementSet() {
+    private fun advertiseNextAdvertisementSet() {
+         if (!_active) {
+             return
+         }
+
          selectNextAdvertisementSet()
 
          val nextSet = _currentAdvertisementSet
          if (nextSet == null) {
              Log.e(_logTag, "Current Advertisement Set is null.")
+             deactivate(_context, true)
              return
          }
 
-         if (_active) {
-             // Only advertise if the set is checked
-             if (nextSet.isChecked) {
-                 val preparedSet = prepareAdvertisementSet(nextSet)
-                 // Validate data size before attempting to advertise
-                 if (preparedSet.validate()) {
-                     _consecutiveValidationSkips = 0
-                     _advertisementService.startAdvertisement(preparedSet)
-                 } else {
-                     _consecutiveValidationSkips += 1
-                     val checkedSetCount = _advertisementSetCollection.advertisementSetLists
-                         .sumOf { list -> list.advertisementSets.count { it.isChecked } }
-                     if (checkedSetCount == 0 || _consecutiveValidationSkips >= checkedSetCount) {
-                         Log.w(_logTag, "All checked advertisement sets failed validation; deactivating queue.")
-                         _consecutiveValidationSkips = 0
-                         _active = false
-                         return
-                     }
-                     Log.w(_logTag, "Skipping advertisement set '${preparedSet.title}' — data exceeds ${AdvertiseData.MAX_LEGACY_ADVERTISING_DATA_SIZE} byte limit")
-                     onAdvertisementSucceeded()
-                 }
+         // Only advertise if the set is checked
+         if (nextSet.isChecked) {
+             val preparedSet = prepareAdvertisementSet(nextSet)
+             // Validate data size before attempting to advertise
+             if (preparedSet.validate()) {
+                 _consecutiveValidationSkips = 0
+                 _advertisementInFlight = true
+                 _advertisementService.startAdvertisement(preparedSet)
              } else {
-                 // If the set is not checked, immediately move to the next one
-                 Log.d(_logTag, "Skipping unchecked advertisement set: ${nextSet.title}")
-                 onAdvertisementSucceeded()
+                 _consecutiveValidationSkips += 1
+                 val checkedSetCount = _advertisementSetCollection.advertisementSetLists
+                     .sumOf { list -> list.advertisementSets.count { it.isChecked } }
+                 if (checkedSetCount == 0 || _consecutiveValidationSkips >= checkedSetCount) {
+                     Log.w(_logTag, "All checked advertisement sets failed validation; deactivating queue.")
+                     _consecutiveValidationSkips = 0
+                     deactivate(_context, true)
+                     return
+                 }
+                 Log.w(_logTag, "Skipping advertisement set '${preparedSet.title}' - data exceeds ${AdvertiseData.MAX_LEGACY_ADVERTISING_DATA_SIZE} byte limit")
+                 advertiseNextAdvertisementSet()
              }
+         } else {
+             // A manually selected unchecked item should not block the queue.
+             Log.d(_logTag, "Skipping unchecked advertisement set: ${nextSet.title}")
+             advertiseNextAdvertisementSet()
          }
-     }
+    }
 
     private fun prepareAdvertisementSet(advertisementSet: AdvertisementSet): AdvertisementSet {
         return when (advertisementSet.type) {
@@ -277,23 +325,47 @@ private fun advertiseNextAdvertisementSet() {
     private fun selectNextAdvertisementSet() {
         // Explicit returns are used for clarity
 
+        if (_selectedAdvertisementPending) {
+            _selectedAdvertisementPending = false
+            val selectedAdvertisementSet = _advertisementSetCollection.advertisementSetLists
+                .getOrNull(_pendingAdvertisementSetListIndex)
+                ?.advertisementSets
+                ?.getOrNull(_pendingAdvertisementSetIndex)
+            if (selectedAdvertisementSet != null) {
+                _currentAdvertisementSetListIndex = _pendingAdvertisementSetListIndex
+                _currentAdvertisementSetIndex = _pendingAdvertisementSetIndex
+                _currentAdvertisementSet = selectedAdvertisementSet
+                return
+            }
+        }
+
         when (_advertisementQueueMode) {
             AdvertisementQueueMode.ADVERTISEMENT_QUEUE_MODE_LINEAR -> {
                 // If no AdvertisementSet is currently selected, make sure to start at the beginning
-                if (_currentAdvertisementSet == null) {
+                val hasCurrentAdvertisementSet = _currentAdvertisementSet != null
+                if (!hasCurrentAdvertisementSet) {
                     _currentAdvertisementSetListIndex = 0
                     _currentAdvertisementSetIndex = 0
                 }
 
-                val selectedList =
-                    _advertisementSetCollection.advertisementSetLists[_currentAdvertisementSetListIndex]
+                val selectedList = _advertisementSetCollection.advertisementSetLists
+                    .getOrNull(_currentAdvertisementSetListIndex)
+                if (selectedList == null) {
+                    _currentAdvertisementSet = null
+                    return
+                }
                 Log.d(
                     _logTag,
                     "List: ${selectedList.title}, SETS: ${selectedList.advertisementSets.count()}, CurrentIndex: $_currentAdvertisementSetIndex"
                 )
 
                 // Find the next checked item in the current list
-                for (i in (_currentAdvertisementSetIndex + 1) until selectedList.advertisementSets.size) {
+                val firstSetIndex = if (hasCurrentAdvertisementSet) {
+                    _currentAdvertisementSetIndex + 1
+                } else {
+                    0
+                }
+                for (i in firstSetIndex until selectedList.advertisementSets.size) {
                     if (selectedList.advertisementSets[i].isChecked) {
                         // _currentAdvertisementSetListIndex is unchanged
                         _currentAdvertisementSetIndex = i
@@ -323,7 +395,7 @@ private fun advertiseNextAdvertisementSet() {
                 }
 
                 // No checked set found in any list — deactivating will stop the loop safely.
-                _active = false
+                _currentAdvertisementSet = null
                 Log.w(_logTag, "No checked advertisement sets found; deactivating queue.")
                 return
             }
@@ -356,6 +428,11 @@ private fun advertiseNextAdvertisementSet() {
     }
 
     private fun onAdvertisementSucceeded() {
+        if (!_active) {
+            return
+        }
+
+        markModernAdvertisementAsStopping()
         _advertisementService.stopAdvertisement()
 
         if (_advertisementService.isLegacyService()) {
@@ -367,23 +444,75 @@ private fun advertiseNextAdvertisementSet() {
 
     private fun onAdvertisementFailed() {
         Log.d(_logTag, "Advertisement failed, trying again")
-        onAdvertisementSucceeded()
+        if (_active) {
+            advertiseNextAdvertisementSet()
+        }
     }
 
     private fun runLocalCallback(success:Boolean){
-        Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
-            override fun run() {
+        if (!_active) {
+            return
+        }
+
+        cancelPendingAdvance()
+        val advance = Runnable {
+            _pendingAdvance = null
+            if (_active) {
                 if(success){
                     onAdvertisementSucceeded()
                 } else {
                     onAdvertisementFailed()
                 }
             }
-        }, _intervalMillis)
+        }
+        _pendingAdvance = advance
+        _handler.postDelayed(advance, _intervalMillis)
+    }
+
+    private fun cancelPendingAdvance() {
+        _pendingAdvance?.let(_handler::removeCallbacks)
+        _pendingAdvance = null
+    }
+
+    private fun markModernAdvertisementAsStopping() {
+        if (
+            !_advertisementService.isLegacyService() &&
+            _advertisementInFlight &&
+            _currentAdvertisementSet != null
+        ) {
+            _awaitingModernStop = true
+            _stoppingAdvertisementSet = _currentAdvertisementSet
+        }
+    }
+
+    private fun applyPendingAdvertisementService(): Boolean {
+        val advertisementService = _pendingAdvertisementService ?: return false
+        _pendingAdvertisementService = null
+        _advertisementService.removeAdvertisementServiceCallback(this)
+        _advertisementService = advertisementService
+        _advertisementService.addAdvertisementServiceCallback(this)
+        _awaitingModernStop = false
+        _stoppingAdvertisementSet = null
+        _advertisementInFlight = false
+        return true
+    }
+
+    private fun resumeAfterTerminalCallback() {
+        applyPendingAdvertisementService()
+        when {
+            _active -> advertiseNextAdvertisementSet()
+            _activationPending -> {
+                _activationPending = false
+                activate(_context)
+            }
+        }
     }
 
     // Callback Implementation, just pass to own Listeners
     override fun onAdvertisementSetStart(advertisementSet: AdvertisementSet?) {
+        if (advertisementSet === _currentAdvertisementSet) {
+            _advertisementInFlight = true
+        }
         _advertisementServiceCallbacks.map {
             try {
                 it.onAdvertisementSetStart(advertisementSet)
@@ -394,6 +523,9 @@ private fun advertiseNextAdvertisementSet() {
     }
 
     override fun onAdvertisementSetStop(advertisementSet: AdvertisementSet?) {
+        if (advertisementSet === _currentAdvertisementSet) {
+            _advertisementInFlight = false
+        }
         _advertisementServiceCallbacks.map {
             try {
                 it.onAdvertisementSetStop(advertisementSet)
@@ -402,13 +534,21 @@ private fun advertiseNextAdvertisementSet() {
             }
         }
 
-        if (!_advertisementService.isLegacyService()) {
-            advertiseNextAdvertisementSet()
+        if (_advertisementService.isLegacyService()) {
+            return
+        }
+        if (_awaitingModernStop && advertisementSet === _stoppingAdvertisementSet) {
+            _awaitingModernStop = false
+            _stoppingAdvertisementSet = null
+            _advertisementInFlight = false
+            resumeAfterTerminalCallback()
         }
     }
 
     override fun onAdvertisementSetSucceeded(advertisementSet: AdvertisementSet?) {
-        runLocalCallback(true)
+        if (advertisementSet === _currentAdvertisementSet) {
+            runLocalCallback(true)
+        }
         _advertisementServiceCallbacks.map {
             try {
                 it.onAdvertisementSetSucceeded(advertisementSet)
@@ -419,7 +559,18 @@ private fun advertiseNextAdvertisementSet() {
     }
 
     override fun onAdvertisementSetFailed(advertisementSet: AdvertisementSet?, advertisementError: AdvertisementError) {
-        runLocalCallback(false)
+        if (advertisementSet === _currentAdvertisementSet) {
+            _advertisementInFlight = false
+            if (_awaitingModernStop && advertisementSet === _stoppingAdvertisementSet) {
+                _awaitingModernStop = false
+                _stoppingAdvertisementSet = null
+                resumeAfterTerminalCallback()
+            } else if (_pendingAdvertisementService != null) {
+                resumeAfterTerminalCallback()
+            } else {
+                runLocalCallback(false)
+            }
+        }
         _advertisementServiceCallbacks.map {
             try {
                 it.onAdvertisementSetFailed(advertisementSet, advertisementError)

@@ -25,16 +25,16 @@ class SwiftPairAdvertisementSetGenerator : IAdvertisementSetGenerator {
     private val _prependedBytes = StringHelpers.decodeHex("030080")
 
     private val _deviceNames = mapOf(
-        "Surface Headphones" to "Microsoft Surface Headphones",
-        "Surface Headphones 2+" to "Microsoft Surface Headphones 2+",
-        "Surface Earbuds" to "Microsoft Surface Earbuds",
+        "Surface Headphones" to "Surface Headphones",
+        "Surface Headphones 2+" to "Surface Headphones 2+",
+        "Surface Earbuds" to "Surface Earbuds",
         "Xbox Wireless Controller" to "Xbox Controller",
         "Microsoft Bluetooth Keyboard" to "Microsoft Keyboard",
         "Microsoft Modern Mobile Headset" to "Microsoft Headset",
         "Surface Precision Mouse" to "Microsoft Mouse",
         "Microsoft Number Pad" to "Microsoft Number Pad",
         "Surface Mobile Mouse" to "Surface Mouse",
-        "Designer Compact Keyboard" to "Microsoft Designer Keyboard",
+        "Designer Compact Keyboard" to "Designer Keyboard",
         "Arc Mouse" to "Microsoft Arc Mouse",
         "Universal Foldable Keyboard" to "Microsoft Foldable KB",
         "Bluetooth Mobile Keyboard 5000" to "Microsoft Mobile KB",
@@ -72,7 +72,7 @@ class SwiftPairAdvertisementSetGenerator : IAdvertisementSetGenerator {
 
             val manufacturerSpecificData = ManufacturerSpecificData()
             manufacturerSpecificData.manufacturerId = _manufacturerId
-            manufacturerSpecificData.manufacturerSpecificData = _prependedBytes.plus(deviceName.key.toByteArray())
+            manufacturerSpecificData.manufacturerSpecificData = _prependedBytes.plus(deviceName.value.toByteArray())
             advertisementSet.advertiseData.manufacturerData.add(manufacturerSpecificData)
             advertisementSet.advertiseData.includeTxPower = false
 

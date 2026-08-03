@@ -27,14 +27,11 @@
     <!-- Needed to turn Bluetooth on -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- On SDK 31 and higher we assert above that we won't use Bluetooth for location.
-        ACCESS_COARSE_LOCATION is still needed! -->
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission
+        android:name="android.permission.ACCESS_COARSE_LOCATION"
+        android:maxSdkVersion="28" />
     <uses-permission
         android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.ACCESS_BACKGROUND_LOCATION"
         android:maxSdkVersion="30" />
 
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
@@ -47,6 +44,7 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application
@@ -61,7 +59,7 @@
 
         <service android:foregroundServiceType="specialUse" android:name=".Services.AdvertisementForegroundService" />
 
-        <service android:foregroundServiceType="location" android:name=".Services.BluetoothLeScanForegroundService" />
+        <service android:foregroundServiceType="connectedDevice|location" android:name=".Services.BluetoothLeScanForegroundService" />
 
         <receiver android:name=".Services.AdvertisementForegroundService$ToggleButtonListener" />
 

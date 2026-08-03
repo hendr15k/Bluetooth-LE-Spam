@@ -1,6 +1,5 @@
 package de.simon.dankelmann.bluetoothlespam.ui.start
 
-import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
@@ -17,6 +16,7 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.simon.dankelmann.bluetoothlespam.Database.AppDatabase
 import de.simon.dankelmann.bluetoothlespam.Helpers.BluetoothHelpers.Companion.bluetoothAdapter
@@ -24,12 +24,12 @@ import de.simon.dankelmann.bluetoothlespam.Helpers.BluetoothHelpers.Companion.is
 import de.simon.dankelmann.bluetoothlespam.PermissionCheck.PermissionCheck
 import de.simon.dankelmann.bluetoothlespam.R
 import de.simon.dankelmann.bluetoothlespam.databinding.FragmentStartBinding
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.lang.Exception
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.withContext
 
 
 class StartFragment : Fragment() {
@@ -42,6 +42,13 @@ class StartFragment : Fragment() {
 
     private var _binding: FragmentStartBinding? = null
     private val binding get() = _binding!!
+    private var databaseCheckJob: Job? = null
+
+    private data class DatabaseStatus(
+        val initialized: Boolean,
+        val seeding: Boolean,
+        val hasItems: Boolean,
+    )
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
@@ -59,23 +66,27 @@ class StartFragment : Fragment() {
                 }
             }
 
-        setupUi(root.context)
-
-        // These _should_ only need one-time initialisation, and thus don't need to be in onResume.
-        checkDatabase()
-
         return root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupUi(view.context)
+        checkDatabase()
+    }
+
     override fun onDestroyView() {
-        super.onDestroyView()
+        databaseCheckJob?.cancel()
+        databaseCheckJob = null
         _binding = null
+        super.onDestroyView()
     }
 
     override fun onResume() {
         super.onResume()
 
         checkRequiredPermissions(requireContext())
+        viewModel.bluetoothSupport.postValue(getBluetoothSupportText(requireContext()))
         checkBluetoothAdapter(true)
     }
 
@@ -212,50 +223,61 @@ class StartFragment : Fragment() {
     }
 
     fun addMissingRequirement(missingRequirement:String){
-        var newList = viewModel.missingRequirements.value!!
+        val newList = viewModel.missingRequirements.value.orEmpty().toMutableList()
         if(!newList.contains(missingRequirement)){
             newList.add(missingRequirement)
         }
-        viewModel.missingRequirements.postValue(newList)
+        viewModel.missingRequirements.value = newList
     }
 
     fun removeMissingRequirement(missingRequirement:String){
-        var newList = viewModel.missingRequirements.value!!
+        val newList = viewModel.missingRequirements.value.orEmpty().toMutableList()
         newList.remove(missingRequirement)
-        viewModel.missingRequirements.postValue(newList)
+        viewModel.missingRequirements.value = newList
     }
 
     fun checkDatabase(){
-        CoroutineScope(Dispatchers.IO).launch {
-            var result = false
-            var database = AppDatabase.getInstance()
-            if(database != null){
-                removeMissingRequirement("Database is not initialized")
-                if(!database.isSeeding && !database.inTransaction()){
-                    removeMissingRequirement("Database is Seeding")
-                    viewModel.isSeeding.postValue(false)
-                    var numberOfAdvertisementSetEntities = database.advertisementSetDao().getAll().count()
-                    if(numberOfAdvertisementSetEntities > 0){
-                        removeMissingRequirement("Database is empty")
-                        result = true
-                    } else {
-                        addMissingRequirement("Database is empty")
+        databaseCheckJob?.cancel()
+        databaseCheckJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                val status = withContext(Dispatchers.IO) {
+                    try {
+                        val database = AppDatabase.getInstance()
+                        val seeding = database.isSeeding || database.inTransaction()
+                        val hasItems = !seeding && database.advertisementSetDao().getAll().isNotEmpty()
+                        DatabaseStatus(true, seeding, hasItems)
+                    } catch (_: Exception) {
+                        DatabaseStatus(false, false, false)
                     }
-                } else {
-                    addMissingRequirement("Database is Seeding")
-                    viewModel.isSeeding.postValue(true)
                 }
 
-            } else {
-                addMissingRequirement("Database is not initialized")
-            }
-            viewModel.databaseIsReady.postValue(result)
+                if (status.initialized) {
+                    removeMissingRequirement("Database is not initialized")
+                } else {
+                    addMissingRequirement("Database is not initialized")
+                }
 
-            if(result == false){
-                // Check again in a few seconds
-                Executors.newSingleThreadScheduledExecutor().schedule({
-                    checkDatabase()
-                }, 2, TimeUnit.SECONDS)
+                if (status.seeding) {
+                    addMissingRequirement("Database is Seeding")
+                    removeMissingRequirement("Database is empty")
+                } else {
+                    removeMissingRequirement("Database is Seeding")
+                    if (status.initialized && status.hasItems) {
+                        removeMissingRequirement("Database is empty")
+                    } else if (status.initialized) {
+                        addMissingRequirement("Database is empty")
+                    }
+                }
+
+                val databaseReady = status.initialized && !status.seeding && status.hasItems
+                viewModel.isSeeding.value = status.seeding
+                viewModel.databaseIsReady.value = databaseReady
+
+                if (databaseReady) {
+                    return@launch
+                }
+
+                delay(2_000)
             }
         }
     }
@@ -267,6 +289,9 @@ class StartFragment : Fragment() {
         val bluetoothAdapter: BluetoothAdapter? = activity.bluetoothAdapter()
         if (bluetoothAdapter != null) {
             removeMissingRequirement("Bluetooth Adapter not found")
+            if (!PermissionCheck.hasConnectPermission(activity)) {
+                return
+            }
             if (bluetoothAdapter.isEnabled) {
                 removeMissingRequirement("Bluetooth is disabled")
                 viewModel.bluetoothAdapterIsReady.postValue(true)
@@ -282,10 +307,7 @@ class StartFragment : Fragment() {
     }
 
     fun promptEnableBluetooth() {
-        if (PermissionCheck.checkPermission(
-                Manifest.permission.BLUETOOTH_CONNECT, requireContext()
-            )
-        ) {
+        if (PermissionCheck.hasConnectPermission(requireContext())) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             enableBluetoothLauncher.launch(enableBtIntent)
         }
@@ -323,9 +345,6 @@ class StartFragment : Fragment() {
     }
 
     fun requestRequiredPermissions() {
-        val allPermissions = PermissionCheck.getAllRelevantPermissions()
-        allPermissions.forEach { permission ->
-            PermissionCheck.checkPermissionAndRequest(permission, requireActivity())
-        }
+        PermissionCheck.requestMissingPermissions(requireActivity())
     }
 }

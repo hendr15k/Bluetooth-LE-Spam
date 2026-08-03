@@ -18,6 +18,17 @@ interface AdvertiseDataManufacturerSpecificDataDao {
     @Query("SELECT * FROM advertisedatamanufacturerspecificdataentity")
     fun getAll(): List<AdvertiseDataManufacturerSpecificDataEntity>
 
+    @Query("""
+        UPDATE advertisedatamanufacturerspecificdataentity
+        SET manufacturerSpecificData = :manufacturerSpecificData
+        WHERE advertiseDataId = :advertiseDataId AND manufacturerId = :manufacturerId
+    """)
+    fun updateManufacturerData(
+        advertiseDataId: Int,
+        manufacturerId: Int,
+        manufacturerSpecificData: String,
+    )
+
     @Insert
     fun insertAll(vararg advertiseDataManufacturerSpecificDataEntity: AdvertiseDataManufacturerSpecificDataEntity)
 

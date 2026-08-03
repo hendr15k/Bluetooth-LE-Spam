@@ -1,6 +1,5 @@
 package de.simon.dankelmann.bluetoothlespam.Services
 
-import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Context
@@ -121,10 +120,7 @@ class BluetoothLeAdvertisementService(
     private fun startAdvertising(advertisementSet: AdvertisementSet){
         if(_advertiser != null){
             if (advertisementSet.validate()) {
-                if (PermissionCheck.checkPermission(
-                        Manifest.permission.BLUETOOTH_ADVERTISE, context
-                    )
-                ) {
+                if (PermissionCheck.hasAdvertisePermission(context)) {
                     val preparedAdvertisementSet = prepareAdvertisementSet(advertisementSet)
                     _advertiser!!.startAdvertising(preparedAdvertisementSet.advertiseSettings.build(), preparedAdvertisementSet.advertiseData.build(), preparedAdvertisementSet.advertisingCallback)
                     _bleAdvertisementServiceCallback.map {
@@ -143,8 +139,12 @@ class BluetoothLeAdvertisementService(
 
     private fun stopAdvertising(advertisementSet: AdvertisementSet) {
         if (_advertiser != null) {
-            if (PermissionCheck.checkPermission(Manifest.permission.BLUETOOTH_ADVERTISE, context)) {
-                _advertiser!!.stopAdvertising(advertisementSet.advertisingCallback)
+            if (PermissionCheck.hasAdvertisePermission(context)) {
+                try {
+                    _advertiser!!.stopAdvertising(advertisementSet.advertisingCallback)
+                } catch (error: SecurityException) {
+                    Log.e(_logTag, "Unable to stop advertisement", error)
+                }
             } else {
                 Log.d(_logTag, "Missing permission to stop advertisement")
             }
@@ -156,10 +156,7 @@ class BluetoothLeAdvertisementService(
     private fun startAdvertisingSet(advertisementSet: AdvertisementSet){
         if(_advertiser != null){
             if (advertisementSet.validate()) {
-                if (PermissionCheck.checkPermission(
-                        Manifest.permission.BLUETOOTH_ADVERTISE, context
-                    )
-                ) {
+                if (PermissionCheck.hasAdvertisePermission(context)) {
                     val preparedAdvertisementSet = prepareAdvertisementSet(advertisementSet)
                     _advertiser!!.startAdvertisingSet(preparedAdvertisementSet.advertisingSetParameters.build(), preparedAdvertisementSet.advertiseData.build(), null, null, null, preparedAdvertisementSet.advertisingSetCallback)
                     _bleAdvertisementServiceCallback.map {
@@ -178,10 +175,14 @@ class BluetoothLeAdvertisementService(
 
     private fun stopAdvertisingSet(advertisementSet: AdvertisementSet) {
         if (_advertiser != null) {
-            if (PermissionCheck.checkPermission(Manifest.permission.BLUETOOTH_ADVERTISE, context)) {
-                _advertiser!!.stopAdvertisingSet(advertisementSet.advertisingSetCallback)
-                _bleAdvertisementServiceCallback.map {
-                    it.onAdvertisementStopped()
+            if (PermissionCheck.hasAdvertisePermission(context)) {
+                try {
+                    _advertiser!!.stopAdvertisingSet(advertisementSet.advertisingSetCallback)
+                    _bleAdvertisementServiceCallback.map {
+                        it.onAdvertisementStopped()
+                    }
+                } catch (error: SecurityException) {
+                    Log.e(_logTag, "Unable to stop advertisement set", error)
                 }
             } else {
                 Log.d(_logTag, "Missing permission to stop advertisement")

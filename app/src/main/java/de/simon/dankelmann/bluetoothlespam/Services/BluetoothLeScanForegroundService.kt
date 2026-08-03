@@ -8,6 +8,7 @@ import android.app.Service
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.os.Binder
 import android.os.Build
@@ -15,6 +16,7 @@ import android.os.IBinder
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavDeepLinkBuilder
 import de.simon.dankelmann.bluetoothlespam.BleSpamApplication
@@ -24,6 +26,7 @@ import de.simon.dankelmann.bluetoothlespam.Interfaces.Services.IBluetoothLeScanS
 import de.simon.dankelmann.bluetoothlespam.MainActivity
 import de.simon.dankelmann.bluetoothlespam.Models.FlipperDeviceScanResult
 import de.simon.dankelmann.bluetoothlespam.Models.SpamPackageScanResult
+import de.simon.dankelmann.bluetoothlespam.PermissionCheck.PermissionCheck
 import de.simon.dankelmann.bluetoothlespam.R
 
 class BluetoothLeScanForegroundService: IBluetoothLeScanCallback, Service() {
@@ -40,9 +43,23 @@ class BluetoothLeScanForegroundService: IBluetoothLeScanCallback, Service() {
     companion object {
         private val _logTag = "AdvertisementScanForegroundService"
 
-        fun startService(context: Context) {
+        fun startService(context: Context): Boolean {
+            if (!PermissionCheck.hasScanPermission(context)) {
+                Log.w(_logTag, "Cannot start scan service without scan permission")
+                return false
+            }
+
             val startIntent = Intent(context, BluetoothLeScanForegroundService::class.java)
-            ContextCompat.startForegroundService(context, startIntent)
+            return try {
+                ContextCompat.startForegroundService(context, startIntent)
+                true
+            } catch (error: SecurityException) {
+                Log.e(_logTag, "Unable to start scan foreground service", error)
+                false
+            } catch (error: IllegalStateException) {
+                Log.e(_logTag, "Unable to start scan foreground service", error)
+                false
+            }
         }
 
         fun stopService(context: Context) {
@@ -55,13 +72,22 @@ class BluetoothLeScanForegroundService: IBluetoothLeScanCallback, Service() {
         super.onCreate()
 
         createNotificationChannel()
-        startForeground(
+        val foregroundServiceType = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+            else -> 0
+        }
+        ServiceCompat.startForeground(
+            this,
             2,
             createNotification(
                 getString(R.string.spam_detecting_title),
                 getString(R.string.spam_detecting_text),
                 false
-            )
+            ),
+            foregroundServiceType,
         )
     }
 
@@ -70,7 +96,10 @@ class BluetoothLeScanForegroundService: IBluetoothLeScanCallback, Service() {
 
         val scanService = (applicationContext as BleSpamApplication).scanService
         scanService.addBluetoothLeScanServiceCallback(this)
-        scanService.startScanning()
+        if (!scanService.startScanning()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         return START_STICKY
     }
@@ -89,8 +118,8 @@ class BluetoothLeScanForegroundService: IBluetoothLeScanCallback, Service() {
         super.onDestroy()
 
         val scanService = (applicationContext as BleSpamApplication).scanService
-        scanService.stopScanning()
         scanService.removeBluetoothLeScanServiceCallback(this)
+        scanService.stopScanning()
     }
 
     private fun createNotificationChannel() {
@@ -146,6 +175,12 @@ class BluetoothLeScanForegroundService: IBluetoothLeScanCallback, Service() {
             val notification = createNotification(title, subTitle, alertOnlyOnce)
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(id, notification)
+        }
+    }
+
+    override fun onScanStateChanged(isScanning: Boolean) {
+        if (!isScanning) {
+            stopSelf()
         }
     }
 

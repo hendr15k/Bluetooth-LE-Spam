@@ -43,7 +43,11 @@ import de.simon.dankelmann.bluetoothlespam.Database.Entities.AssociatonCollectio
 import de.simon.dankelmann.bluetoothlespam.Database.Entities.AssociationListSetEntity
 import de.simon.dankelmann.bluetoothlespam.Database.Entities.PeriodicAdvertisingParametersEntity
 import de.simon.dankelmann.bluetoothlespam.Database.Migrations.Migration_1_2
+import de.simon.dankelmann.bluetoothlespam.Enums.AdvertisementSetType
 import de.simon.dankelmann.bluetoothlespam.Helpers.DatabaseHelpers
+import de.simon.dankelmann.bluetoothlespam.Helpers.StringHelpers.Companion.toHexString
+import de.simon.dankelmann.bluetoothlespam.Models.AdvertisementSet
+import java.util.concurrent.atomic.AtomicBoolean
 
 @androidx.room.Database(
     entities = [AdvertiseDataEntity::class,
@@ -61,6 +65,7 @@ import de.simon.dankelmann.bluetoothlespam.Helpers.DatabaseHelpers
     exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
+    @Volatile
     var isSeeding = false
     abstract fun advertiseDataDao(): AdvertiseDataDao
     abstract fun advertiseDataManufacturerSpecificDataDao(): AdvertiseDataManufacturerSpecificDataDao
@@ -85,7 +90,17 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         private const val _logTag = "AppDatabase"
+        private const val CATALOG_PREFS = "database_catalog"
+        private const val CATALOG_VERSION_KEY = "catalog_version"
+        private const val CATALOG_VERSION = 4
         private var INSTANCE: AppDatabase? = null
+        private val catalogSyncStarted = AtomicBoolean(false)
+        private val fastPairTypes = setOf(
+            AdvertisementSetType.ADVERTISEMENT_TYPE_FAST_PAIRING_DEVICE,
+            AdvertisementSetType.ADVERTISEMENT_TYPE_FAST_PAIRING_NON_PRODUCTION,
+            AdvertisementSetType.ADVERTISEMENT_TYPE_FAST_PAIRING_PHONE_SETUP,
+            AdvertisementSetType.ADVERTISEMENT_TYPE_FAST_PAIRING_DEBUG,
+        )
 
         fun getInstance(): AppDatabase =
             INSTANCE ?: synchronized(this) {
@@ -99,54 +114,119 @@ abstract class AppDatabase : RoomDatabase() {
                 //.fallbackToDestructiveMigration()
                 .build()
 
+        private fun catalogKey(advertisementSet: AdvertisementSet): String {
+            val base = "${advertisementSet.target}|${advertisementSet.type}|${advertisementSet.title}"
+            if (advertisementSet.type !in fastPairTypes) {
+                return base
+            }
+
+            val serviceData = advertisementSet.advertiseData.services
+                .map { service ->
+                    "${service.serviceUuid}:${service.serviceData?.toHexString().orEmpty()}"
+                }
+                .sorted()
+                .joinToString(",")
+            return "$base|$serviceData"
+        }
+
+        private fun catalogKey(
+            advertisementSet: AdvertisementSetEntity,
+            serviceDataByAdvertiseDataId: Map<Int, List<AdvertiseDataServiceDataEntity>>,
+        ): String {
+            val base = "${advertisementSet.target}|${advertisementSet.type}|${advertisementSet.title}"
+            if (advertisementSet.type !in fastPairTypes) {
+                return base
+            }
+
+            val serviceData = serviceDataByAdvertiseDataId[advertisementSet.advertiseDataId]
+                .orEmpty()
+                .map { service -> "${service.serviceUuid}:${service.serviceData.orEmpty()}" }
+                .sorted()
+                .joinToString(",")
+            return "$base|$serviceData"
+        }
+
         private fun seedDatabaseCallback(context: Context): Callback {
             return object : Callback() {
-                override fun onCreate(db: SupportSQLiteDatabase) {
-                    super.onCreate(db)
-                    Thread {
-                        synchronized(this) {
-                            seedingThread.run()
-                        }
-                    }.start()
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    syncCatalog(context.applicationContext)
                 }
             }
         }
 
-        val seedingThread = Runnable {
-            Log.d(_logTag, "Starting Database Seeding")
-            getInstance().isSeeding = true
-
-            val advertisementSetGenerators = listOf(
-                FastPairDevicesAdvertisementSetGenerator(),
-                FastPairPhoneSetupAdvertisementSetGenerator(),
-                FastPairNonProductionAdvertisementSetGenerator(),
-                FastPairDebugAdvertisementSetGenerator(),
-
-                //ContinuityDevicePopUpAdvertisementSetGenerator(),
-                ContinuityNotYourDevicePopUpAdvertisementSetGenerator(),
-                ContinuityNewDevicePopUpAdvertisementSetGenerator(),
-                ContinuityNewAirtagPopUpAdvertisementSetGenerator(),
-                ContinuityActionModalAdvertisementSetGenerator(),
-                ContinuityIos17CrashAdvertisementSetGenerator(),
-
-                SwiftPairAdvertisementSetGenerator(),
-
-                EasySetupWatchAdvertisementSetGenerator(),
-                EasySetupBudsAdvertisementSetGenerator(),
-
-                LovespousePlayAdvertisementSetGenerator(),
-                LovespouseStopAdvertisementSetGenerator()
-            )
-
-            advertisementSetGenerators.forEach{ generator ->
-                val advertisementSets = generator.getAdvertisementSets(null)
-                advertisementSets.forEach{ advertisementSet ->
-                    DatabaseHelpers.saveAdvertisementSet(advertisementSet)
-                }
+        private fun syncCatalog(context: Context) {
+            if (!catalogSyncStarted.compareAndSet(false, true)) {
+                return
             }
 
-            getInstance().isSeeding = false
-            Log.d(_logTag, "Database Seeding finished")
+            Thread({
+                val database = getInstance()
+                database.isSeeding = true
+                Log.d(_logTag, "Starting database catalog sync")
+
+                try {
+                    val preferences = context.getSharedPreferences(CATALOG_PREFS, Context.MODE_PRIVATE)
+                    val catalogVersion = preferences.getInt(CATALOG_VERSION_KEY, 0)
+                    if (
+                        catalogVersion >= CATALOG_VERSION &&
+                        database.advertisementSetDao().getAll().isNotEmpty()
+                    ) {
+                        return@Thread
+                    }
+
+                    val generatedAdvertisementSets = listOf(
+                        FastPairDevicesAdvertisementSetGenerator(),
+                        FastPairPhoneSetupAdvertisementSetGenerator(),
+                        FastPairNonProductionAdvertisementSetGenerator(),
+                        FastPairDebugAdvertisementSetGenerator(),
+                        ContinuityNotYourDevicePopUpAdvertisementSetGenerator(),
+                        ContinuityNewDevicePopUpAdvertisementSetGenerator(),
+                        ContinuityNewAirtagPopUpAdvertisementSetGenerator(),
+                        ContinuityActionModalAdvertisementSetGenerator(),
+                        ContinuityIos17CrashAdvertisementSetGenerator(),
+                        SwiftPairAdvertisementSetGenerator(),
+                        EasySetupWatchAdvertisementSetGenerator(),
+                        EasySetupBudsAdvertisementSetGenerator(),
+                        LovespousePlayAdvertisementSetGenerator(),
+                        LovespouseStopAdvertisementSetGenerator(),
+                    ).flatMap { generator -> generator.getAdvertisementSets(null) }
+
+                    database.runInTransaction {
+                        val serviceDataByAdvertiseDataId = database.advertiseDataServiceDataDao()
+                            .getAll()
+                            .groupBy { serviceData -> serviceData.advertiseDataId }
+                        val existingSets = database.advertisementSetDao().getAll()
+                            .associateByTo(mutableMapOf()) { entity ->
+                                catalogKey(entity, serviceDataByAdvertiseDataId)
+                            }
+
+                        generatedAdvertisementSets.forEach { advertisementSet ->
+                            val key = catalogKey(advertisementSet)
+                            val existingSet = existingSets[key]
+                            if (existingSet == null) {
+                                DatabaseHelpers.saveAdvertisementSet(advertisementSet)
+                            } else if (advertisementSet.type == AdvertisementSetType.ADVERTISEMENT_TYPE_SWIFT_PAIRING) {
+                                advertisementSet.advertiseData.manufacturerData.firstOrNull()?.let { data ->
+                                    database.advertiseDataManufacturerSpecificDataDao()
+                                        .updateManufacturerData(
+                                            existingSet.advertiseDataId,
+                                            data.manufacturerId,
+                                            data.manufacturerSpecificData.toHexString(),
+                                        )
+                                }
+                            }
+                        }
+                    }
+
+                    preferences.edit()
+                        .putInt(CATALOG_VERSION_KEY, CATALOG_VERSION)
+                        .apply()
+                } finally {
+                    database.isSeeding = false
+                    Log.d(_logTag, "Database catalog sync finished")
+                }
+            }, "database-catalog-sync").start()
         }
     }
 }

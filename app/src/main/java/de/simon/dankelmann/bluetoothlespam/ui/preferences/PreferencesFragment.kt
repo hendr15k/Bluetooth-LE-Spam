@@ -57,7 +57,6 @@ class PreferencesFragment : PreferenceFragmentCompat(), MenuProvider {
                 
                 logDirectoryPicker.pickDirectory { directory ->
                     LogFileManager.getInstance(requireContext()).setCustomLogDirectory(directory, requireContext())
-                    LogFileManager.getInstance(requireContext()).initializeLogFile(requireContext())
                     loggingSwitch.isChecked = LogFileManager.getInstance(requireContext()).isLoggingEnabledAndValid()
                 }
                 false // Don't update switch until directory is selected

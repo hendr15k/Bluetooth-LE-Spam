@@ -5,7 +5,7 @@ import de.simon.dankelmann.bluetoothlespam.Models.FlipperDeviceScanResult
 import de.simon.dankelmann.bluetoothlespam.Models.SpamPackageScanResult
 
 interface IBluetoothLeScanService {
-    fun startScanning()
+    fun startScanning(): Boolean
     fun stopScanning()
 
     fun isScanning(): Boolean

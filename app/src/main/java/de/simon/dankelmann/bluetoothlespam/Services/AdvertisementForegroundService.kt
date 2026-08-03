@@ -63,7 +63,7 @@ class AdvertisementForegroundService: IAdvertisementServiceCallback, IAdvertisem
 
         // Setup Callbacks
         val app = applicationContext as BleSpamApplication
-        app.advertisementService.addAdvertisementServiceCallback(this)
+        app.queueHandler.addAdvertisementServiceCallback(this)
         app.queueHandler.addAdvertisementQueueHandlerCallback(this)
     }
 
@@ -82,7 +82,7 @@ class AdvertisementForegroundService: IAdvertisementServiceCallback, IAdvertisem
 
     override fun onDestroy() {
         val app = applicationContext as BleSpamApplication
-        app.advertisementService.removeAdvertisementServiceCallback(this)
+        app.queueHandler.removeAdvertisementServiceCallback(this)
         app.queueHandler.removeAdvertisementQueueHandlerCallback(this)
 
         super.onDestroy()

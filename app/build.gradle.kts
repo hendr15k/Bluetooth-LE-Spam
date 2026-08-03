@@ -7,6 +7,7 @@ plugins {
 }
 
 val app_name = "Bluetooth LE Spam"
+val releaseKey = file("release.jks")
 
 android {
     namespace = "de.simon.dankelmann.bluetoothlespam"
@@ -22,7 +23,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release.jks")
+            storeFile = releaseKey
             storePassword = System.getenv("STORE_PASSWORD")
             keyAlias = System.getenv("KEY_ALIAS")
             keyPassword = System.getenv("KEY_PASSWORD")
@@ -30,13 +31,14 @@ android {
     }
 
     buildTypes {
-        configureEach {
-            val variant = if (File("release.jks").exists()) "release" else "debug"
-            signingConfig = signingConfigs[variant]
-        }
         release {
             resValue("string", "app_name", app_name)
             isMinifyEnabled = false
+            signingConfig = if (releaseKey.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

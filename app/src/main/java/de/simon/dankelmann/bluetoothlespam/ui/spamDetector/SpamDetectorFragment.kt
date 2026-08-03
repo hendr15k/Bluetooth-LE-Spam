@@ -188,13 +188,17 @@ class SpamDetectorFragment : IBluetoothLeScanCallback, Fragment() {
             Log.d(_logTag, "Should Stop")
             viewModel.isDetecting.postValue(false)
         } else {
-            BluetoothLeScanForegroundService.startService(context)
+            val serviceStarted = BluetoothLeScanForegroundService.startService(context)
             //AppContext.getBluetoothLeScanService().startScanning()
-            viewModel.isDetecting.postValue(true)
+            viewModel.isDetecting.postValue(serviceStarted)
         }
     }
 
     // BluetoothLeScanResult Callback Implementation
+    override fun onScanStateChanged(isScanning: Boolean) {
+        viewModel.isDetecting.postValue(isScanning)
+    }
+
     override fun onScanResult(scanResult: ScanResult) {
         // Nothing to do yet
     }

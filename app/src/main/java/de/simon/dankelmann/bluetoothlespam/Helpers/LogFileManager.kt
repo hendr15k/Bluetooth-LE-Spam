@@ -79,7 +79,7 @@ class LogFileManager private constructor(context: Context) {
                 
                 // Also check the directory file as a backup method
                 val dirFile = File(context.dataDir, DIRECTORY_FILE_NAME)
-                if (dirFile.exists() && dirFile.canRead()) {
+                if (savedLoggingEnabled && dirFile.exists() && dirFile.canRead()) {
                     try {
                         val dirPath = dirFile.readText().trim()
                         if (dirPath.isNotEmpty()) {
@@ -145,7 +145,7 @@ class LogFileManager private constructor(context: Context) {
                 restoreLoggingState(context)
                 
                 // If we have a valid directory after restoration, initialize logging
-                if (isLogDirectoryValid()) {
+                if (isLoggingEnabled && isLogDirectoryValid()) {
                     initializeLogFile(context)
                     startLogcatCapture(context)
                     Log.d("LogFileManager", "Logging initialized successfully with directory: ${customLogDirectory?.absolutePath}")
@@ -585,9 +585,9 @@ class LogFileManager private constructor(context: Context) {
     }
 
     fun isLoggingEnabledAndValid(): Boolean {
-        return customLogDirectory?.let { dir ->
+        return isLoggingEnabled && (customLogDirectory?.let { dir ->
             dir.exists() && dir.canWrite()
-        } ?: false
+        } ?: false)
     }
 
     private fun setLoggingState(enabled: Boolean, context: Context?) {

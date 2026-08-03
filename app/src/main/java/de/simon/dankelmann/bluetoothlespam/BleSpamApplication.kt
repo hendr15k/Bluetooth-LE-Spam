@@ -32,7 +32,17 @@ class BleSpamApplication : Application() {
     }
 
     fun setupAdvertisementService() {
-        advertisementService = BluetoothHelpers.getAdvertisementService(this)
-        queueHandler = AdvertisementSetQueueHandler(this, advertisementService)
+        val newAdvertisementService = BluetoothHelpers.getAdvertisementService(this)
+
+        if (!::queueHandler.isInitialized) {
+            advertisementService = newAdvertisementService
+            queueHandler = AdvertisementSetQueueHandler(this, advertisementService)
+            return
+        }
+
+        val txPowerLevel = advertisementService.getTxPowerLevel()
+        newAdvertisementService.setTxPowerLevel(txPowerLevel)
+        queueHandler.setAdvertisementService(newAdvertisementService)
+        advertisementService = newAdvertisementService
     }
 }

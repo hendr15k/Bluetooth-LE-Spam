@@ -42,8 +42,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize log file
-        LogFileManager.getInstance(applicationContext).initializeLogFile(this)
+        // Constructing the singleton restores logging only when it is enabled.
+        LogFileManager.getInstance(applicationContext)
 
         // needs to be before setContentView
         enableEdgeToEdge()

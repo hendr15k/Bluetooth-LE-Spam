@@ -1,16 +1,19 @@
 package de.simon.dankelmann.bluetoothlespam.Services
 
-import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import de.simon.dankelmann.bluetoothlespam.Helpers.BluetoothHelpers.Companion.bluetoothAdapter
 import de.simon.dankelmann.bluetoothlespam.Helpers.BluetoothLeDeviceClassificationHelper
 import de.simon.dankelmann.bluetoothlespam.Interfaces.Callbacks.IBluetoothLeScanCallback
@@ -27,7 +30,6 @@ class BluetoothLeScanService(
 ) : IBluetoothLeScanService, ScanCallback() {
 
     private val _logTag = "BluetoothLeScanService"
-    private var _bluetoothAdapter:BluetoothAdapter? = null
     private var _bluetoothLeScanner:BluetoothLeScanner? = null
     private var _scanning = false
     private var _bluetoothLeScanServiceCallbacks:MutableList<IBluetoothLeScanCallback> = mutableListOf()
@@ -38,12 +40,26 @@ class BluetoothLeScanService(
     private val _millis_housekeeping_spam_packages:Long = 1000
     private val _millis_spam_package_lifetime = 5000
     private val _millis_flipper_device_lifetime = 5000
+    private val _bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != BluetoothAdapter.ACTION_STATE_CHANGED) {
+                return
+            }
+            val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+            if (state != BluetoothAdapter.STATE_ON && _scanning) {
+                _bluetoothLeScanner = null
+                updateScanningState(false)
+            }
+        }
+    }
 
     init {
-        _bluetoothAdapter = context.bluetoothAdapter()
-        if(_bluetoothAdapter != null){
-            _bluetoothLeScanner = _bluetoothAdapter!!.bluetoothLeScanner
-        }
+        ContextCompat.registerReceiver(
+            context,
+            _bluetoothStateReceiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
 
         // Start Housekeeping:
         startFlipperDevicesHouseKeeping()
@@ -151,28 +167,67 @@ class BluetoothLeScanService(
         return _scanning
     }
 
-    override fun startScanning(){
-        if (PermissionCheck.checkPermission(Manifest.permission.BLUETOOTH_SCAN, context)) {
-            if (_bluetoothLeScanner != null) {
-                // SET THE FILTERS AND SETTINGS
-                val filterList:List<ScanFilter> = mutableListOf(ScanFilter.Builder().build())
-
-                val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-                _bluetoothLeScanner!!.startScan(filterList, settings, this)
-
-                Log.d(_logTag, "Started BLE Scan")
-                _scanning = true
-            }
+    override fun startScanning(): Boolean {
+        if (_scanning) {
+            return true
         }
+        if (!PermissionCheck.hasScanPermission(context)) {
+            Log.d(_logTag, "Missing permission to scan")
+            updateScanningState(false)
+            return false
+        }
+
+        try {
+            val scanner = context.bluetoothAdapter()?.bluetoothLeScanner
+            if (scanner == null) {
+                Log.d(_logTag, "BLE scanner is unavailable")
+                updateScanningState(false)
+                return false
+            }
+
+            val filterList:List<ScanFilter> = mutableListOf(ScanFilter.Builder().build())
+            val settings = ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build()
+
+            scanner.startScan(filterList, settings, this)
+            _bluetoothLeScanner = scanner
+            Log.d(_logTag, "Started BLE Scan")
+            updateScanningState(true)
+            return true
+        } catch (error: SecurityException) {
+            Log.e(_logTag, "Unable to start BLE scan", error)
+        } catch (error: IllegalStateException) {
+            Log.e(_logTag, "Unable to start BLE scan", error)
+        }
+
+        updateScanningState(false)
+        return false
     }
 
     override fun stopScanning() {
-        if (PermissionCheck.checkPermission(Manifest.permission.BLUETOOTH_SCAN, context)) {
-            if (_bluetoothLeScanner != null) {
-                _bluetoothLeScanner!!.stopScan(this)
+        try {
+            if (PermissionCheck.hasScanPermission(context)) {
+                _bluetoothLeScanner?.let { scanner ->
+                    scanner.stopScan(this)
+                }
                 Log.d(_logTag, "Stopped BLE Scan")
-                _scanning = false
+            } else {
+                Log.d(_logTag, "Missing permission to stop BLE scan")
             }
+        } catch (error: SecurityException) {
+            Log.e(_logTag, "Unable to stop BLE scan", error)
+        } catch (error: IllegalStateException) {
+            Log.e(_logTag, "Unable to stop BLE scan", error)
+        } finally {
+            updateScanningState(false)
+        }
+    }
+
+    private fun updateScanningState(isScanning: Boolean) {
+        _scanning = isScanning
+        _bluetoothLeScanServiceCallbacks.toList().forEach { callback ->
+            callback.onScanStateChanged(isScanning)
         }
     }
 
@@ -256,6 +311,7 @@ class BluetoothLeScanService(
 
     override fun onScanFailed(errorCode: Int) {
         super.onScanFailed(errorCode)
+        updateScanningState(false)
 
         when(errorCode){
             SCAN_FAILED_ALREADY_STARTED -> Log.e(_logTag, "onScanFailed: SCAN_FAILED_ALREADY_STARTED")

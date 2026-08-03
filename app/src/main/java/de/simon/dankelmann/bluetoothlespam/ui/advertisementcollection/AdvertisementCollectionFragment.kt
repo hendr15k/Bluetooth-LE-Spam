@@ -23,13 +23,18 @@ import de.simon.dankelmann.bluetoothlespam.Models.AdvertisementSetList
 import de.simon.dankelmann.bluetoothlespam.R
 import de.simon.dankelmann.bluetoothlespam.databinding.FragmentAdvertisementCollectionBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class AdvertisementCollectionFragment : Fragment() {
 
     private val _logTag = "AdvertisementCollectionFragment"
     private var _binding: FragmentAdvertisementCollectionBinding? = null
+    private var collectionLoadJob: Job? = null
 
     private val binding get() = _binding!!
 
@@ -187,29 +192,40 @@ class AdvertisementCollectionFragment : Fragment() {
         advertisementSetTypes: List<AdvertisementSetType>,
         advertisementSetCollectionTitle: String
     ) {
-        // TODO: Move this work into a ViewModel
-        lifecycleScope.launch(Dispatchers.IO) {
-            // Run database work in background
-            val advertisementSetCollection =
-                buildAdvertisementCollection(advertisementSetTypes, advertisementSetCollectionTitle)
+        if (collectionLoadJob?.isActive == true) {
+            return
+        }
 
-            activity?.let { ac ->
-                ac.runOnUiThread {
-                    // Pass Collection to Advertisement Fragment
-                    val navController = ac.findNavController(R.id.nav_host_fragment)
-                    (ac.applicationContext as BleSpamApplication).queueHandler.apply {
-                        deactivate(ac)
-                        setAdvertisementSetCollection(advertisementSetCollection)
-                    }
-                    navController.navigate(R.id.action_ad_coll_to_ad)
-                }
+        collectionLoadJob = viewLifecycleOwner.lifecycleScope.launch {
+            val advertisementSetListTitles = advertisementSetTypes.associateWith { type ->
+                "${getString(type.stringResId())} List"
             }
+            val advertisementSetCollection = withContext(Dispatchers.IO) {
+                buildAdvertisementCollection(
+                    advertisementSetTypes,
+                    advertisementSetCollectionTitle,
+                    advertisementSetListTitles,
+                )
+            }
+
+            val currentActivity = activity ?: return@launch
+            val navController = currentActivity.findNavController(R.id.nav_host_fragment)
+            if (navController.currentDestination?.id != R.id.nav_advertisement_collection) {
+                return@launch
+            }
+
+            (currentActivity.applicationContext as BleSpamApplication).queueHandler.apply {
+                deactivate(currentActivity)
+                setAdvertisementSetCollection(advertisementSetCollection)
+            }
+            navController.navigate(R.id.action_ad_coll_to_ad)
         }
     }
 
-    fun buildAdvertisementCollection(
+    suspend fun buildAdvertisementCollection(
         advertisementSetTypes: List<AdvertisementSetType>,
-        advertisementSetCollectionTitle: String
+        advertisementSetCollectionTitle: String,
+        advertisementSetListTitles: Map<AdvertisementSetType, String>,
     ): AdvertisementSetCollection {
         // Initialize the Collection
         var advertisementSetCollection = AdvertisementSetCollection()
@@ -228,12 +244,14 @@ class AdvertisementCollectionFragment : Fragment() {
         }
 
         advertisementSetTypes.forEach { advertisementSetType ->
+            currentCoroutineContext().ensureActive()
             // Initialize the List
             val advertisementSetList = AdvertisementSetList()
-            advertisementSetList.title = "${getString(advertisementSetType.stringResId())} List"
+            advertisementSetList.title = advertisementSetListTitles.getValue(advertisementSetType)
 
             val advertisementSets =
                 DatabaseHelpers.getAllAdvertisementSetsForType(advertisementSetType)
+            currentCoroutineContext().ensureActive()
             advertisementSetList.advertisementSets = advertisementSets.toMutableList()
 
             // Add List to the Collection

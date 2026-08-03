@@ -64,7 +64,11 @@ class BluetoothLeDeviceClassificationHelper {
                     // Detect Apple Spam
                     if(manufacturerId == Constants.MANUFACTURER_ID_APPLE){
                         // Check Apple Action Modal, Example: 0f05c027c72b7c OR iOs17 Crash, Example: 0f05c00d39f791000010720dab
-                        if(dataString.lowercase(Locale.ROOT).startsWith("0f05c0") || dataString.lowercase(Locale.ROOT).startsWith("0f0540")){
+                        if(
+                            dataString.lowercase(Locale.ROOT).startsWith("0f05c0") ||
+                            dataString.lowercase(Locale.ROOT).startsWith("0f0540") ||
+                            dataString.lowercase(Locale.ROOT).startsWith("0f05bf")
+                        ){
                             if(dataString.contains("000010")){
                                spamPackageType = SpamPackageType.CONTINUITY_IOS_17_CRASH
                             } else {
