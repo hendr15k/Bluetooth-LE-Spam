@@ -1,8 +1,6 @@
 # Bluetooth LE Spam [![Discord](https://img.shields.io/discord/1170266776731406386?label=Discord&link=https://discord.gg/x4e4Gma585)](https://discord.gg/x4e4Gma585) [![Build](https://github.com/hendr15k/Bluetooth-LE-Spam/actions/workflows/build.yml/badge.svg)](https://github.com/hendr15k/Bluetooth-LE-Spam/actions/workflows/build.yml)
 
-[<img src="https://f-droid.org/badge/get-it-on.png"
-alt="Get it on F-Droid"
-height="80">](https://f-droid.org/packages/de.simon.dankelmann.bluetoothlespam/)
+[![Download](https://img.shields.io/github/v/release/hendr15k/Bluetooth-LE-Spam?label=Download&logo=github)](https://github.com/hendr15k/Bluetooth-LE-Spam/releases/latest)
 
 This project uses the built-in Bluetooth Low Energy (BLE) functionality built into Android devices
 to create Phantom Bluetooth Device Advertisements, similar to what is known, for instance, in the case of the Flipper Zero.
@@ -106,8 +104,7 @@ Devices like the Flipper Zero, however, have the capability to modify this byte,
 <details >
 <summary>Details</summary>
 <br>
-You can get installable APK files from the <a href="https://github.com/simondankelmann/Bluetooth-LE-Spam/releases">Github Releases</a>
-and from <a href="https://f-droid.org/packages/de.simon.dankelmann.bluetoothlespam/">F-Droid</a>.
+You can get installable APK files from the <a href="https://github.com/hendr15k/Bluetooth-LE-Spam/releases">Github Releases</a>.
 You can clone the git repo and also build the app yourself.
 
 If you are an end-user looking for a fully functional app, download the Release APK for optimal performance (simply go for this one).
