@@ -64,6 +64,7 @@ class AdvertisementCollectionFragment : Fragment() {
             AdvertisementTarget.ADVERTISEMENT_TARGET_SAMSUNG,
             AdvertisementTarget.ADVERTISEMENT_TARGET_WINDOWS,
             AdvertisementTarget.ADVERTISEMENT_TARGET_LOVESPOUSE,
+            AdvertisementTarget.ADVERTISEMENT_TARGET_HID,
             AdvertisementTarget.ADVERTISEMENT_TARGET_KITCHEN_SINK
         ).forEach { target -> setupAdvertisementTarget(target) }
     }
@@ -147,6 +148,15 @@ class AdvertisementCollectionFragment : Fragment() {
                     ResourcesCompat.getDrawable(resources, R.drawable.heart, context.theme)
                 )
             }
+
+            AdvertisementTarget.ADVERTISEMENT_TARGET_HID -> {
+                titleTextView.text = "HID Device"
+                targetTextView.text = "Target: HID (Keyboard)"
+                distanceTextView.text = "Distance: Close"
+                iconImageView.setImageDrawable(
+                    ResourcesCompat.getDrawable(resources, R.drawable.key_24, context.theme)
+                )
+            }
         }
 
         // Hookup Events
@@ -176,6 +186,10 @@ class AdvertisementCollectionFragment : Fragment() {
 
                 AdvertisementTarget.ADVERTISEMENT_TARGET_LOVESPOUSE -> {
                     onLovespouseCardViewClicked()
+                }
+
+                AdvertisementTarget.ADVERTISEMENT_TARGET_HID -> {
+                    onHidCardViewClicked()
                 }
 
                 else -> {
@@ -241,6 +255,10 @@ class AdvertisementCollectionFragment : Fragment() {
 
         if (advertisementSetTypes.contains(AdvertisementSetType.ADVERTISEMENT_TYPE_CONTINUITY_IOS_17_CRASH)) {
             advertisementSetCollection.hints.add("Devices on iOS 18 or above will not crash but still get pop-ups")
+        }
+
+        if (advertisementSetTypes.contains(AdvertisementSetType.ADVERTISEMENT_TYPE_HID)) {
+            advertisementSetCollection.hints.add("Android cannot set a custom name, so your device's own Bluetooth name is advertised")
         }
 
         advertisementSetTypes.forEach { advertisementSetType ->
@@ -309,6 +327,13 @@ class AdvertisementCollectionFragment : Fragment() {
         )
     }
 
+    fun onHidCardViewClicked() {
+        navigateToAdvertisementFragmentWithType(
+            listOf(AdvertisementSetType.ADVERTISEMENT_TYPE_HID),
+            "HID Device Collection"
+        )
+    }
+
     fun onKitchenSinkCardViewClicked(context: Context) {
         // Set Random Mode for Kitchen Sink
         (context.applicationContext as BleSpamApplication).queueHandler
@@ -333,6 +358,8 @@ class AdvertisementCollectionFragment : Fragment() {
 
                 AdvertisementSetType.ADVERTISEMENT_TYPE_LOVESPOUSE_PLAY,
                 AdvertisementSetType.ADVERTISEMENT_TYPE_LOVESPOUSE_STOP,
+
+                AdvertisementSetType.ADVERTISEMENT_TYPE_HID,
 
                 ), "Kitchen Sink Collection"
         )

@@ -16,6 +16,7 @@ import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.FastPairDe
 import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.FastPairDebugAdvertisementSetGenerator
 import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.FastPairNonProductionAdvertisementSetGenerator
 import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.FastPairPhoneSetupAdvertisementSetGenerator
+import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.HidAdvertisementSetGenerator
 import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.LovespousePlayAdvertisementSetGenerator
 import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.LovespouseStopAdvertisementSetGenerator
 import de.simon.dankelmann.bluetoothlespam.AdvertisementSetGenerators.SwiftPairAdvertisementSetGenerator
@@ -92,7 +93,7 @@ abstract class AppDatabase : RoomDatabase() {
         private const val _logTag = "AppDatabase"
         private const val CATALOG_PREFS = "database_catalog"
         private const val CATALOG_VERSION_KEY = "catalog_version"
-        private const val CATALOG_VERSION = 4
+        private const val CATALOG_VERSION = 6
         private var INSTANCE: AppDatabase? = null
         private val catalogSyncStarted = AtomicBoolean(false)
         private val fastPairTypes = setOf(
@@ -190,6 +191,7 @@ abstract class AppDatabase : RoomDatabase() {
                         EasySetupBudsAdvertisementSetGenerator(),
                         LovespousePlayAdvertisementSetGenerator(),
                         LovespouseStopAdvertisementSetGenerator(),
+                        HidAdvertisementSetGenerator(),
                     ).flatMap { generator -> generator.getAdvertisementSets(null) }
 
                     database.runInTransaction {

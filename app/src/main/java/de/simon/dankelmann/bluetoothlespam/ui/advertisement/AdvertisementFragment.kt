@@ -192,6 +192,8 @@ class AdvertisementFragment : Fragment(), IAdvertisementServiceCallback, IAdvert
 
             AdvertisementSetType.ADVERTISEMENT_TYPE_LOVESPOUSE_PLAY -> "Lovespouse Play"
             AdvertisementSetType.ADVERTISEMENT_TYPE_LOVESPOUSE_STOP -> "Lovespouse Stop"
+
+            AdvertisementSetType.ADVERTISEMENT_TYPE_HID -> "HID Device (Keyboard)"
         }
 
         var range = when(advertisementSet.range){

@@ -18,7 +18,8 @@ enum class AdvertisementSetType {
     ADVERTISEMENT_TYPE_EASY_SETUP_WATCH,
     ADVERTISEMENT_TYPE_EASY_SETUP_BUDS,
     ADVERTISEMENT_TYPE_LOVESPOUSE_PLAY,
-    ADVERTISEMENT_TYPE_LOVESPOUSE_STOP
+    ADVERTISEMENT_TYPE_LOVESPOUSE_STOP,
+    ADVERTISEMENT_TYPE_HID
 }
 
 fun AdvertisementSetType.stringResId(): Int {
@@ -43,5 +44,7 @@ fun AdvertisementSetType.stringResId(): Int {
 
         AdvertisementSetType.ADVERTISEMENT_TYPE_LOVESPOUSE_PLAY -> R.string.ad_set_type_lovespouse_play
         AdvertisementSetType.ADVERTISEMENT_TYPE_LOVESPOUSE_STOP -> R.string.ad_set_type_lovespouse_stop
+
+        AdvertisementSetType.ADVERTISEMENT_TYPE_HID -> R.string.ad_set_type_hid
     }
 }
