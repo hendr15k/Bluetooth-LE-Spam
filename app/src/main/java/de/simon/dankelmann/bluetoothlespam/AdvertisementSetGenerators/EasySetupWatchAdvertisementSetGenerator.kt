@@ -52,6 +52,11 @@ class EasySetupWatchAdvertisementSetGenerator:IAdvertisementSetGenerator{
         "1D" to "Silver Watch6 Cyan 44mm",
         "1E" to "Black Watch6 Classic 43m",
         "20" to "Green Watch6 Classic 43m",
+        // NEW DEVICES FROM BLE-DB (2024-2025)
+        "E4" to "Black Watch5 Golf Edition",
+        "E5" to "White Watch5 Gold Edition",
+        "EC" to "Black Watch6 Golf Edition",
+        "EF" to "Black Watch6 TB Edition",
     )
 
     override fun getAdvertisementSets(inputData: Map<String, String>?): List<AdvertisementSet> {

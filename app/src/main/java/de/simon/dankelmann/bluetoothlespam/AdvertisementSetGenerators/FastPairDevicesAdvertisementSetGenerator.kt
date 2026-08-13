@@ -553,7 +553,35 @@ class FastPairDevicesAdvertisementSetGenerator:IAdvertisementSetGenerator{
         "D6C43E" to "boAt Alpha",
         "DCE90F" to "WONDERBOOM 4",
         "E6032D" to "MAJOR V",
-        "F00400" to "T10"
+        "F00400" to "T10",
+        // NEW DEVICES FROM XTREME FIRMWARE fastpair.c (2024-2025)
+        "000007" to "Android Auto",
+        "000008" to "Foocorp Foophones",
+        "000009" to "Test Android TV",
+        "00000B" to "Google Gphones",
+        "00000D" to "Test 00000D",
+        "000035" to "Test 000035",
+        "0001F0" to "Bisto CSR8670 Dev Board",
+        "00B727" to "Smart Controller 1",
+        "00F7D4" to "Smart Setup",
+        "01E5CE" to "BLE-Phone",
+        "1E89A7" to "ATS2833_EVB",
+        "F00002" to "Goodyear",
+        // Custom debug popups (trigger Fast Pair popups)
+        "005EF9" to "Ryanair",
+        "0C0B67" to "Xtreme Cta",
+        "13B39D" to "Talking Sasquach",
+        "1448C9" to "BLM",
+        "77FF67" to "Free Robux",
+        "7C6CDB" to "Obama",
+        "87B25F" to "Animated Rickroll",
+        "AA187F" to "Free VBucks",
+        "AA1FE1" to "ClownMaster",
+        "D5AB33" to "Xtreme",
+        "D99CA1" to "Flipper Zero",
+        "DCE9EA" to "Rickroll",
+        "E2106F" to "FBI",
+        "F38C02" to "Boykisser"
         )
 
 
