@@ -8,7 +8,6 @@ import de.simon.dankelmann.bluetoothlespam.PermissionCheck.PermissionCheck
 import java.time.LocalDateTime
 
 open class BluetoothLeScanResult {
-    private val logTag = "BluetoothLeScanResult"
     var deviceName = ""
     var address = ""
     var scanRecord = byteArrayOf()
@@ -59,9 +58,9 @@ open class BluetoothLeScanResult {
 
             if (PermissionCheck.hasConnectPermission(context)) {
                 try {
-                    model.address = scanResult.device.address
-                    scanResult.device?.name?.let { name ->
-                        model.deviceName = name
+                    scanResult.device?.let { device ->
+                        model.address = device.address
+                        device.name?.let { name -> model.deviceName = name }
                     }
                 } catch (_: SecurityException) {
                     // The permission may have been revoked between the check and access.

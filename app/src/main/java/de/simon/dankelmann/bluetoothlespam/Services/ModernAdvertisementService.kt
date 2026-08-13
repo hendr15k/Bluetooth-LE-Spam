@@ -119,7 +119,7 @@ class ModernAdvertisementService(
 
         try {
             if (PermissionCheck.hasAdvertisePermission(context) && _advertiser != null) {
-                _advertiser!!.stopAdvertisingSet(currentAdvertisementSet.advertisingSetCallback)
+                _advertiser?.stopAdvertisingSet(currentAdvertisementSet.advertisingSetCallback)
             } else {
                 Log.d(_logTag, "Unable to access advertiser while stopping")
                 _currentAdvertisementSet = null

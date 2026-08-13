@@ -108,10 +108,7 @@ class LegacyAdvertisementService(
     }
 
     override fun getTxPowerLevel(): TxPowerLevel{
-        if(_txPowerLevel != null){
-            return _txPowerLevel!!
-        }
-        return TxPowerLevel.TX_POWER_HIGH
+        return _txPowerLevel ?: TxPowerLevel.TX_POWER_HIGH
     }
 
     fun prepareAdvertisementSet(advertisementSet: AdvertisementSet):AdvertisementSet{

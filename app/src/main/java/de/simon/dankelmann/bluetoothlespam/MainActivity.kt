@@ -66,13 +66,13 @@ class MainActivity : AppCompatActivity() {
             OnSharedPreferenceChangeListener { sharedPreferences, key ->
                 run {
                     val app = (applicationContext as BleSpamApplication)
-                    var legacyAdvertisingKey =
+                    val legacyAdvertisingKey =
                         resources.getString(R.string.preference_key_use_legacy_advertising)
                     if (key == legacyAdvertisingKey) {
                         app.setupAdvertisementService()
                     }
 
-                    var intervalKey =
+                    val intervalKey =
                         resources.getString(R.string.preference_key_interval_advertising_queue_handler)
                     if (key == intervalKey) {
                         val newInterval = QueueHandlerHelpers.getInterval(this)

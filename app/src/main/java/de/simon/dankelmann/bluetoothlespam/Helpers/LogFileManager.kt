@@ -89,11 +89,10 @@ class LogFileManager private constructor(context: Context) {
                                 isLoggingEnabled = true
                                 
                                 // Update SharedPreferences to ensure consistency
-                                prefs.edit().apply {
-                                    putString(KEY_CUSTOM_DIRECTORY, dir.absolutePath)
-                                    putBoolean(KEY_LOGGING_ENABLED, true)
-                                    commit()
-                                }
+                                prefs.edit()
+                                    .putString(KEY_CUSTOM_DIRECTORY, dir.absolutePath)
+                                    .putBoolean(KEY_LOGGING_ENABLED, true)
+                                    .apply()
                                 
                                 Log.d("LogFileManager", "Restored logging state from backup file: ${dir.absolutePath}")
                                 return
@@ -195,13 +194,11 @@ class LogFileManager private constructor(context: Context) {
 
                 // Save state to preferences BEFORE updating memory state
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit().apply {
-                    // Don't clear existing state, just update what we need
-                    putString(KEY_CUSTOM_DIRECTORY, directory.absolutePath)
-                    putBoolean(KEY_LOGGING_ENABLED, true)
-                    putBoolean(KEY_LOGGER_STATE, true)
-                    commit() // Use commit() for synchronous write
-                }
+                prefs.edit()
+                    .putString(KEY_CUSTOM_DIRECTORY, directory.absolutePath)
+                    .putBoolean(KEY_LOGGING_ENABLED, true)
+                    .putBoolean(KEY_LOGGER_STATE, true)
+                    .apply()
 
                 // Update memory state
                 customLogDirectory = directory
@@ -220,12 +217,11 @@ class LogFileManager private constructor(context: Context) {
                 customLogDirectory = null
                 
                 // Clear preferences on failure
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
-                    remove(KEY_CUSTOM_DIRECTORY)
-                    putBoolean(KEY_LOGGING_ENABLED, false)
-                    putBoolean(KEY_LOGGER_STATE, false)
-                    commit() // Use commit() to ensure immediate cleanup
-                }
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                    .remove(KEY_CUSTOM_DIRECTORY)
+                    .putBoolean(KEY_LOGGING_ENABLED, false)
+                    .putBoolean(KEY_LOGGER_STATE, false)
+                    .apply()
                 
                 throw e // Re-throw the exception to notify the caller
             }

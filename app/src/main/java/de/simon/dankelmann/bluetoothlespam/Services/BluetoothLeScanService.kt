@@ -104,19 +104,13 @@ class BluetoothLeScanService(
 
     private fun cleanFlipperDevicesList(){
         val currentTime = LocalDateTime.now()
-        var itemsToRemove = mutableListOf<FlipperDeviceScanResult>()
-        _flipperDevicesList.forEachIndexed{ index, flipperDevice ->
+        val removed = _flipperDevicesList.removeAll { flipperDevice ->
             val lifetime = Duration.between(flipperDevice.lastSeen, currentTime).toMillis()
-            if(lifetime >= _millis_flipper_device_lifetime){
-                itemsToRemove.add(flipperDevice)
-            }
+            lifetime >= _millis_flipper_device_lifetime
         }
 
-        if(itemsToRemove.count() > 0){
-            itemsToRemove.forEach{itemToRemove ->
-                _flipperDevicesList.remove(itemToRemove)
-            }
-            _bluetoothLeScanServiceCallbacks.forEach{callback ->
+        if (removed) {
+            _bluetoothLeScanServiceCallbacks.forEach { callback ->
                 callback.onFlipperListUpdated()
             }
         }
@@ -124,19 +118,13 @@ class BluetoothLeScanService(
 
     private fun cleanSpamPackageList(){
         val currentTime = LocalDateTime.now()
-        var itemsToRemove = mutableListOf<SpamPackageScanResult>()
-        _spamPackageScanResultList.forEachIndexed{ index, spamPackage ->
+        val removed = _spamPackageScanResultList.removeAll { spamPackage ->
             val lifetime = Duration.between(spamPackage.lastSeen, currentTime).toMillis()
-            if(lifetime >= _millis_spam_package_lifetime){
-                itemsToRemove.add(spamPackage)
-            }
+            lifetime >= _millis_spam_package_lifetime
         }
 
-        if(itemsToRemove.count() > 0){
-            itemsToRemove.forEach{itemToRemove ->
-                _spamPackageScanResultList.remove(itemToRemove)
-            }
-            _bluetoothLeScanServiceCallbacks.forEach{callback ->
+        if (removed) {
+            _bluetoothLeScanServiceCallbacks.forEach { callback ->
                 callback.onSpamResultPackageListUpdated()
             }
         }
@@ -232,7 +220,7 @@ class BluetoothLeScanService(
     }
 
     // android.bluetooth.le.scancallback:
-    override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+    override fun onBatchScanResults(results: List<ScanResult>?) {
         super.onBatchScanResults(results)
         Log.d(_logTag, "onBatchScanResults called")
     }

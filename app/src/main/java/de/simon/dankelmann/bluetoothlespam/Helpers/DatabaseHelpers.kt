@@ -27,12 +27,11 @@ class DatabaseHelpers {
     companion object{
         private const val _logTag = "DatabaseHelpers"
 
-        fun saveAdvertisementSet(advertisementSet: AdvertisementSet,):Int{
-
+        fun saveAdvertisementSet(advertisementSet: AdvertisementSet):Int{
 
             val database = AppDatabase.getInstance()
 
-            var advertisementSetEntity:AdvertisementSetEntity = AdvertisementSetEntity(
+            val advertisementSetEntity:AdvertisementSetEntity = AdvertisementSetEntity(
                 advertisementSet.id,
                 advertisementSet.title,
                 advertisementSet.target,
@@ -48,7 +47,7 @@ class DatabaseHelpers {
                 0
             )
 
-            var advertiseSettingsEntity = AdvertiseSettingsEntity(
+            val advertiseSettingsEntity = AdvertiseSettingsEntity(
                 advertisementSet.advertiseSettings.id,
                 advertisementSet.advertiseSettings.advertiseMode,
                 advertisementSet.advertiseSettings.txPowerLevel,
@@ -56,10 +55,10 @@ class DatabaseHelpers {
                 advertisementSet.advertiseSettings.timeout
             )
 
-            var advertiseSettingsId = database.advertiseSettingsDao().insertItem(advertiseSettingsEntity).toInt()
+            val advertiseSettingsId = database.advertiseSettingsDao().insertItem(advertiseSettingsEntity).toInt()
             advertisementSetEntity.advertiseSettingsId = advertiseSettingsId
 
-            var advertisingSetParametersEntity = AdvertisingSetParametersEntity(
+            val advertisingSetParametersEntity = AdvertisingSetParametersEntity(
                 advertisementSet.advertisingSetParameters.id,
                 advertisementSet.advertisingSetParameters.legacyMode,
                 advertisementSet.advertisingSetParameters.interval,
@@ -70,53 +69,47 @@ class DatabaseHelpers {
                 advertisementSet.advertisingSetParameters.scanable,
                 advertisementSet.advertisingSetParameters.connectable,
                 advertisementSet.advertisingSetParameters.anonymous)
-            var advertisingSetParametersId = database.advertisingSetParametersDao().insertItem(advertisingSetParametersEntity).toInt()
+            val advertisingSetParametersId = database.advertisingSetParametersDao().insertItem(advertisingSetParametersEntity).toInt()
             advertisementSetEntity.advertisingSetParametersId = advertisingSetParametersId
 
-            var advertiseDataEntityId = saveAdvertiseData(advertisementSet.advertiseData, database)
+            val advertiseDataEntityId = saveAdvertiseData(advertisementSet.advertiseData, database)
             advertisementSetEntity.advertiseDataId = advertiseDataEntityId
 
-            var scanResponseId: Int? = null
-            if(advertisementSet.scanResponse != null){
-                scanResponseId = saveAdvertiseData(advertisementSet.scanResponse!!, database)
+            val scanResponseId: Int? = advertisementSet.scanResponse?.let {
+                saveAdvertiseData(it, database)
             }
             advertisementSetEntity.scanResponseId = scanResponseId
 
-            var periodicAdvertiseDataId: Int? = null
-            if(advertisementSet.periodicAdvertiseData != null){
-                periodicAdvertiseDataId = saveAdvertiseData(advertisementSet.periodicAdvertiseData!!, database)
+            val periodicAdvertiseDataId: Int? = advertisementSet.periodicAdvertiseData?.let {
+                saveAdvertiseData(it, database)
             }
             advertisementSetEntity.periodicAdvertiseDataId = periodicAdvertiseDataId
 
-
-            var periodicAdvertisingParametersEntity:PeriodicAdvertisingParametersEntity? = null
-            if(advertisementSet.periodicAdvertisingParameters != null){
-                periodicAdvertisingParametersEntity = PeriodicAdvertisingParametersEntity(
-                    advertisementSet.periodicAdvertisingParameters!!.id,
-                    advertisementSet.periodicAdvertisingParameters!!.includeTxPowerLevel,
-                    advertisementSet.periodicAdvertisingParameters!!.interval
+            advertisementSet.periodicAdvertisingParameters?.let { periodicAdvertisingParameters ->
+                val periodicAdvertisingParametersEntity = PeriodicAdvertisingParametersEntity(
+                    periodicAdvertisingParameters.id,
+                    periodicAdvertisingParameters.includeTxPowerLevel,
+                    periodicAdvertisingParameters.interval
                 )
-                var periodicAdvertisingParametersId = database.periodicAdvertisingParametersDao().insertItem(periodicAdvertisingParametersEntity).toInt()
+                val periodicAdvertisingParametersId = database.periodicAdvertisingParametersDao().insertItem(periodicAdvertisingParametersEntity).toInt()
                 advertisementSetEntity.periodicAdvertisingParametersId = periodicAdvertisingParametersId
             }
 
-            var advertisementSetId = database.advertisementSetDao().insertItem(advertisementSetEntity).toInt()
-
-            return advertisementSetId
+            return database.advertisementSetDao().insertItem(advertisementSetEntity).toInt()
         }
         fun saveAdvertiseData(advertiseData: AdvertiseData, database: AppDatabase): Int{
-            var advertiseDataEntity = AdvertiseDataEntity(
+            val advertiseDataEntity = AdvertiseDataEntity(
                 advertiseData.id,
                 advertiseData.includeDeviceName,
                 advertiseData.includeTxPower
             )
 
             // SAVE
-            var advertiseDataId = database.advertiseDataDao().insertItem(advertiseDataEntity).toInt()
+            val advertiseDataId = database.advertiseDataDao().insertItem(advertiseDataEntity).toInt()
 
             // SAVE SERVICE DATA
             advertiseData.services.forEach {service ->
-                var advertiseDataServiceDataEntity = AdvertiseDataServiceDataEntity(
+                val advertiseDataServiceDataEntity = AdvertiseDataServiceDataEntity(
                     service.id,
                     advertiseDataId,
                     UUID.fromString(service.serviceUuid.toString()),
@@ -128,7 +121,7 @@ class DatabaseHelpers {
 
             // SAVE MANUFACTURER DATA
             advertiseData.manufacturerData.forEach { manufacturerSpecificData ->
-                var manufacturerSpecificDataEntity = AdvertiseDataManufacturerSpecificDataEntity(
+                val manufacturerSpecificDataEntity = AdvertiseDataManufacturerSpecificDataEntity(
                     manufacturerSpecificData.id,
                     advertiseDataId,
                     manufacturerSpecificData.manufacturerId,
@@ -143,7 +136,7 @@ class DatabaseHelpers {
         }
 
         fun getAdvertisementSetFromEntity(advertisementSetEntity: AdvertisementSetEntity):AdvertisementSet{
-            var advertisementSet = AdvertisementSet()
+            val advertisementSet = AdvertisementSet()
 
             // Data
             advertisementSet.id = advertisementSetEntity.id
@@ -154,7 +147,7 @@ class DatabaseHelpers {
             advertisementSet.maxExtendedAdvertisingEvents = advertisementSetEntity.maxExtendedAdvertisingEvents
             advertisementSet.range = advertisementSetEntity.range
 
-            var database = AppDatabase.getInstance()
+            val database = AppDatabase.getInstance()
 
             // Advertise Settings
             try {
@@ -223,15 +216,15 @@ class DatabaseHelpers {
         }
 
         fun getAdvertiseDataFromEntity(advertiseDataEntity: AdvertiseDataEntity, database: AppDatabase):AdvertiseData{
-            var advertiseData = AdvertiseData()
+            val advertiseData = AdvertiseData()
 
             advertiseData.id = advertiseDataEntity.id
             advertiseData.includeDeviceName = advertiseDataEntity.includeDeviceName
             advertiseData.includeTxPower = advertiseDataEntity.includeTxPower
 
-            var manufacturerSpecificDataEntities = database.advertiseDataManufacturerSpecificDataDao().findByAdvertiseDataId(advertiseDataEntity.id)
+            val manufacturerSpecificDataEntities = database.advertiseDataManufacturerSpecificDataDao().findByAdvertiseDataId(advertiseDataEntity.id)
             manufacturerSpecificDataEntities.forEach{ manufacturerSpecificDataEntity ->
-                var manufacturerSpecificData = ManufacturerSpecificData()
+                val manufacturerSpecificData = ManufacturerSpecificData()
                 manufacturerSpecificData.id = manufacturerSpecificDataEntity.id
                 manufacturerSpecificData.manufacturerId = manufacturerSpecificDataEntity.manufacturerId
                 manufacturerSpecificData.manufacturerSpecificData = StringHelpers.decodeHex(manufacturerSpecificDataEntity.manufacturerSpecificData)
@@ -239,9 +232,9 @@ class DatabaseHelpers {
                 advertiseData.manufacturerData.add(manufacturerSpecificData)
             }
 
-            var advertiseDataServiceDataEntities = database.advertiseDataServiceDataDao().findByAdvertiseDataId(advertiseDataEntity.id)
+            val advertiseDataServiceDataEntities = database.advertiseDataServiceDataDao().findByAdvertiseDataId(advertiseDataEntity.id)
             advertiseDataServiceDataEntities.forEach{ advertiseDataServiceDataEntity ->
-                var serviceData = ServiceData()
+                val serviceData = ServiceData()
 
                 serviceData.id = advertiseDataServiceDataEntity.id
                 serviceData.serviceUuid = ParcelUuid.fromString(advertiseDataServiceDataEntity.serviceUuid.toString())
@@ -256,22 +249,22 @@ class DatabaseHelpers {
         }
 
         fun getAllAdvertisementSetsForTarget(advertisementTarget: AdvertisementTarget):List<AdvertisementSet>{
-            var database = AppDatabase.getInstance()
-            var advertisementSetEntities = database.advertisementSetDao().findByTarget(advertisementTarget)
+            val database = AppDatabase.getInstance()
+            val advertisementSetEntities = database.advertisementSetDao().findByTarget(advertisementTarget)
             return getAdvertisementSetListFromEntities(advertisementSetEntities)
         }
 
         fun getAllAdvertisementSetsForType(advertisementSetType: AdvertisementSetType):List<AdvertisementSet>{
-            var database = AppDatabase.getInstance()
-            var advertisementSetEntities = database.advertisementSetDao().findByType(advertisementSetType)
+            val database = AppDatabase.getInstance()
+            val advertisementSetEntities = database.advertisementSetDao().findByType(advertisementSetType)
             return getAdvertisementSetListFromEntities(advertisementSetEntities)
         }
 
         fun getAdvertisementSetListFromEntities(entities: List<AdvertisementSetEntity>):List<AdvertisementSet>{
-            var advertisementSets = mutableListOf<AdvertisementSet>()
+            val advertisementSets = mutableListOf<AdvertisementSet>()
 
             entities.forEach { entitiy ->
-                var advertisementSet = getAdvertisementSetFromEntity(entitiy)
+                val advertisementSet = getAdvertisementSetFromEntity(entitiy)
                 advertisementSets.add(advertisementSet)
             }
 

@@ -21,8 +21,6 @@ class AdvertisementSetCollectionExpandableListViewAdapter internal constructor(
 ) : BaseExpandableListAdapter() {
 
     private val inflater: LayoutInflater = LayoutInflater.from(context)
-    private lateinit var groupBinding: ListItemAdvertisementListBinding
-    private lateinit var itemBinding: ListItemAdvertisementSetBinding
 
     override fun getChild(listPosition: Int, expandedListPosition: Int): Any {
         return this.dataList[this.advertisementSetLists[listPosition]]!![expandedListPosition]
@@ -42,7 +40,7 @@ class AdvertisementSetCollectionExpandableListViewAdapter internal constructor(
         var convertView = view
         val holder: ItemViewHolder
         if (convertView == null) {
-            itemBinding = ListItemAdvertisementSetBinding.inflate(inflater)
+            val itemBinding = ListItemAdvertisementSetBinding.inflate(inflater)
             convertView = itemBinding.root
             holder = ItemViewHolder()
             holder.label = itemBinding.listItemAdvertisementSetTextView
@@ -112,7 +110,7 @@ class AdvertisementSetCollectionExpandableListViewAdapter internal constructor(
         val holder: GroupViewHolder
 
         if (convertView == null) {
-            groupBinding = ListItemAdvertisementListBinding.inflate(inflater)
+            val groupBinding = ListItemAdvertisementListBinding.inflate(inflater)
             convertView = groupBinding.root
             holder = GroupViewHolder()
             holder.label = groupBinding.listItemAdvertisementSetList
