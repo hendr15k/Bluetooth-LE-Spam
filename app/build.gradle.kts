@@ -9,6 +9,11 @@ plugins {
 val app_name = "Bluetooth LE Spam"
 val releaseKey = file("release.jks")
 
+// Version numbers can be overridden from CI via -PversionCode / -PversionName,
+// so the release workflow can generate an auto-incrementing version.
+val appVersionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 5
+val appVersionName = (project.findProperty("versionName") as? String) ?: "1.2.0"
+
 android {
     namespace = "de.simon.dankelmann.bluetoothlespam"
     compileSdk = 36
@@ -17,8 +22,8 @@ android {
         applicationId = "de.simon.dankelmann.bluetoothlespam"
         minSdk = 26
         targetSdk = compileSdk
-        versionCode = 5
-        versionName = "1.2.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     signingConfigs {

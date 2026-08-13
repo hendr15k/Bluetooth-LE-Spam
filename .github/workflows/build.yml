@@ -19,6 +19,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -53,8 +55,27 @@ jobs:
 
       - name: Set environments
         run: |
+          # Monotonic versionCode derived from the number of commits.
+          version_code=$(git rev-list --count HEAD)
+
+          # Next versionName: highest existing vX.Y.Z tag with its patch bumped,
+          # so every release always gets a fresh version number.
+          highest_tag=$(git tag --list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+          if [ -n "$highest_tag" ]; then
+            base="${highest_tag#v}"
+            major="${base%%.*}"
+            rest="${base#*.}"
+            minor="${rest%%.*}"
+            patch="${rest#*.}"
+            version_name="$major.$minor.$((patch + 1))"
+          else
+            version_name="1.2.$version_code"
+          fi
+
           {
-            echo "version=v$(grep -oP 'versionName\s*=\s*\"\K[^\"]+' app/build.gradle.kts)"
+            echo "versionCode=$version_code"
+            echo "versionName=$version_name"
+            echo "version=v$version_name"
             echo "commit=$(echo ${{ github.sha }} | cut -c-7)"
             echo "repo=$(echo ${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/})"
           } >> $GITHUB_ENV
@@ -67,7 +88,9 @@ jobs:
             export KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             export KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
           fi
-          ./gradlew assemble --no-daemon --stacktrace --warning-mode=all
+          ./gradlew assemble --no-daemon --stacktrace --warning-mode=all \
+            -PversionCode="${{ env.versionCode }}" \
+            -PversionName="${{ env.versionName }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
