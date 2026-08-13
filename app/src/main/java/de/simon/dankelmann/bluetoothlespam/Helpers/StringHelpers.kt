@@ -37,15 +37,20 @@ class StringHelpers {
         }
 
         /**
-         * ⚡ Bolt Optimization: Uses native `.toString(16).padStart(...)` which is faster
-         * than `.format()` and avoids overhead string allocations for padding in hot loops.
+         * Formats an [Int] as a two-digit lowercase hex string, e.g. 32 -> "20".
+         * Negative values produce more than two digits, so use [byteToHexString]
+         * for raw bytes.
          */
         fun intToHexString(input:Int):String{
-            return String.format("%02x", input) // Reverted due to negative number behavior in `.toString(16)`
+            return String.format("%02x", input)
         }
 
+        /**
+         * Formats a [Byte] as a two-digit lowercase hex string using its unsigned
+         * value, e.g. 0xFF -> "ff".
+         */
         fun byteToHexString(input:Byte):String{
-            return String.format("%02x", input) // Reverted for parity with intToHexString
+            return String.format("%02x", input.toInt() and 0xFF)
         }
 
     }

@@ -2,7 +2,6 @@ package de.simon.dankelmann.bluetoothlespam.Models
 
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertisingSetCallback
-import android.util.Log
 import de.simon.dankelmann.bluetoothlespam.Enums.AdvertisementSetRange
 import de.simon.dankelmann.bluetoothlespam.Enums.AdvertisementSetType
 import de.simon.dankelmann.bluetoothlespam.Enums.AdvertisementState
@@ -10,7 +9,6 @@ import de.simon.dankelmann.bluetoothlespam.Enums.AdvertisementTarget
 import java.io.Serializable
 
 class AdvertisementSet : Serializable {
-    private val _logTag = "AdvertisementSet"
 
     // Data
     var id = 0
@@ -46,13 +44,5 @@ class AdvertisementSet : Serializable {
             return false
         }
         return true
-    }
-
-    fun build() {
-        if (validate()) {
-
-        } else {
-            Log.d(_logTag, "Advertisement set could not be built because it is invalid")
-        }
     }
 }

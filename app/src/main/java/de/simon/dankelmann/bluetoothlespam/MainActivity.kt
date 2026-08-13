@@ -87,6 +87,14 @@ class MainActivity : AppCompatActivity() {
         setupNavController()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::sharedPreferenceChangedListener.isInitialized) {
+            PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangedListener)
+        }
+    }
+
     fun setupNavController() {
         val navController = findNavController(R.id.nav_host_fragment)
 

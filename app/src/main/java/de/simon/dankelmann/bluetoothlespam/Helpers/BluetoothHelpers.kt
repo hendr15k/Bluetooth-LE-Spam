@@ -35,23 +35,14 @@ class BluetoothHelpers {
         }
 
         fun getAdvertisementService(context: Context): IAdvertisementService {
-            var useLegacyAdvertisementService = true
-
-            // Get from Settings, if present
-            val preferences = PreferenceManager.getDefaultSharedPreferences(context).all
+            val preferences = PreferenceManager.getDefaultSharedPreferences(context)
             val prefKey =
                 context.resources.getString(R.string.preference_key_use_legacy_advertising)
-            preferences.forEach {
-                if (it.key == prefKey) {
-                    useLegacyAdvertisementService = it.value as Boolean
-                }
-            }
+            val useLegacyAdvertisementService = preferences.getBoolean(prefKey, true)
 
             return when (useLegacyAdvertisementService) {
                 true -> LegacyAdvertisementService(context)
-                else -> {
-                    ModernAdvertisementService(context)
-                }
+                else -> ModernAdvertisementService(context)
             }
         }
     }

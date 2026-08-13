@@ -513,7 +513,7 @@ class AdvertisementSetQueueHandler(
         if (advertisementSet === _currentAdvertisementSet) {
             _advertisementInFlight = true
         }
-        _advertisementServiceCallbacks.map {
+        _advertisementServiceCallbacks.toList().forEach {
             try {
                 it.onAdvertisementSetStart(advertisementSet)
             } catch (e:Exception){
@@ -526,7 +526,7 @@ class AdvertisementSetQueueHandler(
         if (advertisementSet === _currentAdvertisementSet) {
             _advertisementInFlight = false
         }
-        _advertisementServiceCallbacks.map {
+        _advertisementServiceCallbacks.toList().forEach {
             try {
                 it.onAdvertisementSetStop(advertisementSet)
             } catch (e:Exception){
@@ -549,7 +549,7 @@ class AdvertisementSetQueueHandler(
         if (advertisementSet === _currentAdvertisementSet) {
             runLocalCallback(true)
         }
-        _advertisementServiceCallbacks.map {
+        _advertisementServiceCallbacks.toList().forEach {
             try {
                 it.onAdvertisementSetSucceeded(advertisementSet)
             } catch (e:Exception){
@@ -571,7 +571,7 @@ class AdvertisementSetQueueHandler(
                 runLocalCallback(false)
             }
         }
-        _advertisementServiceCallbacks.map {
+        _advertisementServiceCallbacks.toList().forEach {
             try {
                 it.onAdvertisementSetFailed(advertisementSet, advertisementError)
             } catch (e:Exception){

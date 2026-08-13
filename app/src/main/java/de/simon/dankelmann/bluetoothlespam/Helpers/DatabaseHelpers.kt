@@ -123,7 +123,7 @@ class DatabaseHelpers {
                     service.serviceData?.toHexString()
                 )
 
-                var serviceDataId = database.advertiseDataServiceDataDao().insertItem(advertiseDataServiceDataEntity)
+                database.advertiseDataServiceDataDao().insertItem(advertiseDataServiceDataEntity)
             }
 
             // SAVE MANUFACTURER DATA
@@ -135,7 +135,7 @@ class DatabaseHelpers {
                     manufacturerSpecificData.manufacturerSpecificData.toHexString()
                 )
 
-                var manufacturerDataId = database.advertiseDataManufacturerSpecificDataDao().insertItem(manufacturerSpecificDataEntity)
+                database.advertiseDataManufacturerSpecificDataDao().insertItem(manufacturerSpecificDataEntity)
             }
 
             // RETURN ID
@@ -160,7 +160,7 @@ class DatabaseHelpers {
             try {
                 database.advertiseSettingsDao().findById(advertisementSetEntity.advertiseSettingsId)?.let { entity ->
                     advertisementSet.advertiseSettings = AdvertiseSettings().apply {
-                        id = advertisementSetEntity.id
+                        id = entity.id
                         advertiseMode = entity.advertiseMode
                         txPowerLevel = entity.txPowerLevel
                         connectable = entity.connectable

@@ -290,7 +290,7 @@ class AdvertisementFragment : Fragment(), IAdvertisementServiceCallback, IAdvert
     }
 
     fun highlightCurrentAdverstisementSet(currentAdvertisementSet: AdvertisementSet, advertisementState: AdvertisementState){
-        if(_adapter != null){
+        if(::_adapter.isInitialized){
             _adapter.advertisementSetLists.forEachIndexed{ listIndex, advertisementList ->
                 advertisementList.currentlyAdvertising = false
                 advertisementList.advertisementSets.forEachIndexed{ setIndex, advertisementSet ->

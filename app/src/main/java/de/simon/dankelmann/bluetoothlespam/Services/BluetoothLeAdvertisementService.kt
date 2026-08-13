@@ -55,11 +55,6 @@ class BluetoothLeAdvertisementService(
 
     fun checkHardware():Boolean{
 
-        if(_bluetoothAdapter == null){
-            Log.e(_logTag, "Adapter is null")
-            return false
-        }
-
         if(!_bluetoothAdapter.isMultipleAdvertisementSupported){
             Log.e(_logTag, "Adapter does not support isMultipleAdvertisementSupported")
             return false

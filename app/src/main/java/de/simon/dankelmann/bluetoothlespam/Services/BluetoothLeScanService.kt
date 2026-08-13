@@ -262,21 +262,16 @@ class BluetoothLeScanService(
     }
 
     fun addFlipperDeviceToList(flipperDeviceScanResult: FlipperDeviceScanResult){
-        var elementIndex = -1
-        _flipperDevicesList.forEach {flipperDevice ->
-            if(flipperDevice.address == flipperDeviceScanResult.address){
-                elementIndex = _flipperDevicesList.indexOf(flipperDevice)
-            }
+        val elementIndex = _flipperDevicesList.indexOfFirst {
+            it.address == flipperDeviceScanResult.address
         }
 
         val alreadyKnown = elementIndex != -1
 
-        if(elementIndex == -1){
-            //  Add
-            _flipperDevicesList.add(flipperDeviceScanResult)
-        } else {
-            // Update
+        if (alreadyKnown) {
             _flipperDevicesList[elementIndex] = flipperDeviceScanResult
+        } else {
+            _flipperDevicesList.add(flipperDeviceScanResult)
         }
 
         _bluetoothLeScanServiceCallbacks.forEach {callback ->
@@ -286,21 +281,16 @@ class BluetoothLeScanService(
     }
 
     fun addSpamPackageScanResultToList(spamPackageScanResult: SpamPackageScanResult){
-        var elementIndex = -1
-        _spamPackageScanResultList.forEachIndexed {index, spamPackage ->
-            if(spamPackage.address == spamPackageScanResult.address){
-                elementIndex = index
-            }
+        val elementIndex = _spamPackageScanResultList.indexOfFirst {
+            it.address == spamPackageScanResult.address
         }
 
         val alreadyKnown = elementIndex != -1
 
-        if(elementIndex == -1){
-            //  Add
-            _spamPackageScanResultList.add(spamPackageScanResult)
-        } else {
-            // Update
+        if (alreadyKnown) {
             _spamPackageScanResultList[elementIndex] = spamPackageScanResult
+        } else {
+            _spamPackageScanResultList.add(spamPackageScanResult)
         }
 
         _bluetoothLeScanServiceCallbacks.forEach {callback ->
