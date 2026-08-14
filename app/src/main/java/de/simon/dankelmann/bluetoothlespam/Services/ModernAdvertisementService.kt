@@ -82,11 +82,12 @@ class ModernAdvertisementService(
             }
 
             _advertiser = advertiser
-            if(preparedAdvertisementSet.scanResponse != null){
+            val scanResponse = preparedAdvertisementSet.scanResponse
+            if (scanResponse != null) {
                 advertiser.startAdvertisingSet(
                     preparedAdvertisementSet.advertisingSetParameters.build(),
                     preparedAdvertisementSet.advertiseData.build(),
-                    preparedAdvertisementSet.scanResponse!!.build(),
+                    scanResponse.build(),
                     null, null,
                     preparedAdvertisementSet.advertisingSetCallback
                 )

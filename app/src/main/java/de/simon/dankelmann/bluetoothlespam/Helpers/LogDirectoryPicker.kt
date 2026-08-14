@@ -57,8 +57,7 @@ class LogDirectoryPicker(private val activity: FragmentActivity) {
                 intent.data = uri
                 activity.startActivity(intent)
             } catch (e: Exception) {
-                Log.e(_logTag, "Error requesting storage permission: ${e.message}")
-                e.printStackTrace()
+                Log.e(_logTag, "Error requesting storage permission", e)
             }
         } else {
             // For Android versions below 11, request WRITE_EXTERNAL_STORAGE permission
@@ -104,8 +103,7 @@ class LogDirectoryPicker(private val activity: FragmentActivity) {
                     Log.e(_logTag, "Selected location is not a writable directory")
                 }
             } catch (e: Exception) {
-                Log.e(_logTag, "Error handling directory selection: ${e.message}")
-                e.printStackTrace()
+                Log.e(_logTag, "Error handling directory selection", e)
             }
         }
     }

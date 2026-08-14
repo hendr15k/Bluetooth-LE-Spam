@@ -16,10 +16,7 @@ class ThemeManager private constructor() {
         private var instance: ThemeManager? = null
 
         fun getInstance(): ThemeManager {
-            if (instance == null) {
-                instance = ThemeManager()
-            }
-            return instance!!
+            return instance ?: ThemeManager().also { instance = it }
         }
     }
 

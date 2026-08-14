@@ -107,8 +107,7 @@ class LogFileManager private constructor(context: Context) {
                 clearLoggingState(context)
                 
             } catch (e: Exception) {
-                Log.e("LogFileManager", "Error restoring logging state: ${e.message}")
-                e.printStackTrace()
+                Log.e("LogFileManager", "Error restoring logging state", e)
                 clearLoggingState(context)
             }
         }
@@ -156,8 +155,7 @@ class LogFileManager private constructor(context: Context) {
                 disableLogging(context)
                 
             } catch (e: Exception) {
-                Log.e("LogFileManager", "Error during initialization: ${e.message}")
-                e.printStackTrace()
+                Log.e("LogFileManager", "Error during initialization", e)
                 disableLogging(context)
             }
         }
@@ -209,8 +207,7 @@ class LogFileManager private constructor(context: Context) {
                 startLogcatCapture(context)
                 Log.d("LogFileManager", "Custom log directory set and logging started: ${directory.absolutePath}")
             } catch (e: Exception) {
-                Log.e("LogFileManager", "Error setting custom directory: ${e.message}")
-                e.printStackTrace()
+                Log.e("LogFileManager", "Error setting custom directory", e)
                 // Reset memory state
                 isLoggingEnabled = false
                 isLogging = false
@@ -276,8 +273,7 @@ class LogFileManager private constructor(context: Context) {
                 startLogcatCapture(context)
             }
         } catch (e: Exception) {
-            Log.e("LogFileManager", "Error initializing log file: ${e.message}")
-            e.printStackTrace()
+            Log.e("LogFileManager", "Error initializing log file", e)
             isLoggingEnabled = false
         }
     }
@@ -307,8 +303,7 @@ class LogFileManager private constructor(context: Context) {
                     initializeLogFile(context)
                 }
             } catch (e: Exception) {
-                Log.e("LogFileManager", "Critical error in writeToLog: ${e.message}")
-                e.printStackTrace()
+                Log.e("LogFileManager", "Critical error in writeToLog", e)
                 isLoggingEnabled = false
                 stopLogging()
             }
@@ -352,7 +347,7 @@ class LogFileManager private constructor(context: Context) {
 
         val directoryPicker = LogDirectoryPicker(context)
         directoryPicker.initialize(launcher)
-        directoryPicker.pickDirectory(onDirectorySelected!!)
+        onDirectorySelected?.let { directoryPicker.pickDirectory(it) }
         return true
     }
 
@@ -420,7 +415,8 @@ class LogFileManager private constructor(context: Context) {
             }
 
             // Initialize log file if needed
-            if (currentLogFile == null || !currentLogFile!!.exists()) {
+            val logFile = currentLogFile
+            if (logFile == null || !logFile.exists()) {
                 initializeLogFile(context)
             }
 
@@ -474,8 +470,7 @@ class LogFileManager private constructor(context: Context) {
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("LogFileManager", "Error capturing logcat: ${e.message}")
-                    e.printStackTrace()
+                    Log.e("LogFileManager", "Error capturing logcat", e)
                 } finally {
                     try {
                         bufferedReader?.close()
@@ -509,8 +504,7 @@ class LogFileManager private constructor(context: Context) {
                 }
             }
         } catch (e: Exception) {
-            Log.e("LogFileManager", "Error stopping logging thread: ${e.message}")
-            e.printStackTrace()
+            Log.e("LogFileManager", "Error stopping logging thread", e)
         } finally {
             logcatThread = null
             currentLogFile = null

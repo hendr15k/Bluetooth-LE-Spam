@@ -40,7 +40,7 @@ class AdvertisementSet : Serializable {
         if (!advertiseData.validate()) {
             return false
         }
-        if (scanResponse != null && !scanResponse!!.validate()) {
+        if (scanResponse?.validate() == false) {
             return false
         }
         return true

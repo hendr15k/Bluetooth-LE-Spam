@@ -49,11 +49,12 @@ class LegacyAdvertisementService(
             }
 
             _advertiser = advertiser
-            if (preparedAdvertisementSet.scanResponse != null) {
+            val scanResponse = preparedAdvertisementSet.scanResponse
+            if (scanResponse != null) {
                 advertiser.startAdvertising(
                     preparedAdvertisementSet.advertiseSettings.build(),
                     preparedAdvertisementSet.advertiseData.build(),
-                    preparedAdvertisementSet.scanResponse!!.build(),
+                    scanResponse.build(),
                     preparedAdvertisementSet.advertisingCallback
                 )
             } else {
@@ -112,9 +113,9 @@ class LegacyAdvertisementService(
     }
 
     fun prepareAdvertisementSet(advertisementSet: AdvertisementSet):AdvertisementSet{
-        if(_txPowerLevel != null){
-            advertisementSet.advertiseSettings.txPowerLevel = _txPowerLevel!!
-            advertisementSet.advertisingSetParameters.txPowerLevel = _txPowerLevel!!
+        _txPowerLevel?.let { txPowerLevel ->
+            advertisementSet.advertiseSettings.txPowerLevel = txPowerLevel
+            advertisementSet.advertisingSetParameters.txPowerLevel = txPowerLevel
         }
         advertisementSet.advertisingCallback = getAdvertisingCallback(advertisementSet)
         return advertisementSet

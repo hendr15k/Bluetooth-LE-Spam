@@ -238,8 +238,8 @@ class DatabaseHelpers {
 
                 serviceData.id = advertiseDataServiceDataEntity.id
                 serviceData.serviceUuid = ParcelUuid.fromString(advertiseDataServiceDataEntity.serviceUuid.toString())
-                if(advertiseDataServiceDataEntity.serviceData != null){
-                    serviceData.serviceData = StringHelpers.decodeHex(advertiseDataServiceDataEntity.serviceData!!)
+                advertiseDataServiceDataEntity.serviceData?.let { hex ->
+                    serviceData.serviceData = StringHelpers.decodeHex(hex)
                 }
 
                 advertiseData.services.add(serviceData)

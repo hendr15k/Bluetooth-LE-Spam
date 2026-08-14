@@ -26,11 +26,13 @@ class AdvertiseData : Serializable {
         var size = 0
 
         services.forEach { service ->
-            if (service.serviceUuid != null) {
-                val uuidBytes = getUuidSizeBytes(service.serviceUuid!!)
+            val uuid = service.serviceUuid
+            if (uuid != null) {
+                val uuidBytes = getUuidSizeBytes(uuid)
                 size += 1 + 1 + uuidBytes
-                if (service.serviceData != null) {
-                    size += 1 + 1 + uuidBytes + service.serviceData!!.size
+                val data = service.serviceData
+                if (data != null) {
+                    size += 1 + 1 + uuidBytes + data.size
                 }
             }
         }

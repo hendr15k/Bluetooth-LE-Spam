@@ -100,12 +100,13 @@ class EasySetupBudsAdvertisementSetGenerator:IAdvertisementSetGenerator{
             advertisementSet.advertiseData.includeTxPower = false
 
             // Scan Response
-            advertisementSet.scanResponse = AdvertiseData()
-            advertisementSet.scanResponse!!.includeDeviceName = false
+            val scanResponse = AdvertiseData()
+            scanResponse.includeDeviceName = false
             val scanResponseManufacturerSpecificData = ManufacturerSpecificData()
             scanResponseManufacturerSpecificData.manufacturerId = _manufacturerId
             scanResponseManufacturerSpecificData.manufacturerSpecificData = StringHelpers.decodeHex("0000000000000000000000000000")
-            advertisementSet.scanResponse!!.manufacturerData.add(scanResponseManufacturerSpecificData)
+            scanResponse.manufacturerData.add(scanResponseManufacturerSpecificData)
+            advertisementSet.scanResponse = scanResponse
 
 
             // General Data
